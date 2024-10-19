@@ -14,6 +14,7 @@ const path = require('path');
 const NodeCache = require('node-cache');
 const gradient = require('gradient-string');
 const figlet = require('figlet');
+const axios = require('axios');
 const { connectToDatabase } = require('./src/utils/database');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
@@ -26,10 +27,8 @@ const store = makeInMemoryStore({});
 const app = express();
 let sock = null;
 let initialConnection = true;
-let isConnecting = false;
-const sessionDir = path.join(process.cwd(), 'auth_info_baileys');
-const MAX_RETRIES = 5;
-let retryCount = 0;
+const sessionDir = path.join(process.cwd(), 'session');
+const credsPath = path.join(sessionDir, 'creds.json');
 
 async function displayBanner() {
     return new Promise((resolve) => {
@@ -41,78 +40,56 @@ async function displayBanner() {
 }
 
 async function ensureDirectories() {
-    await Promise.all([
-        fs.ensureDir(sessionDir),
-        fs.ensureDir('temp'),
-        fs.ensureDir('assets'),
-        fs.ensureDir('logs')
-    ]);
+    await fs.ensureDir(sessionDir);
+    await fs.ensureDir('temp');
+    await fs.ensureDir('assets');
+    await fs.ensureDir('logs');
 }
 
-async function processSessionData() {
-    if (!process.env.SESSION_DATA) return false;
-    
+async function downloadSessionData() {
+    if (!process.env.SESSION_ID) {
+        logger.error('Please add your session to SESSION_ID env!!');
+        return false;
+    }
+
     try {
-        const sessionData = JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString());
-        await fs.emptyDir(sessionDir);
-        
-        for (const [key, value] of Object.entries(sessionData)) {
-            const filePath = path.join(sessionDir, key);
-            await fs.outputJSON(filePath, value, { spaces: 2 });
-        }
+        const sessdata = process.env.SESSION_ID.split("Bot-MD&")[1];
+        const url = `https://pastebin.com/raw/${sessdata}`;
+        const response = await axios.get(url);
+        const data = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        await fs.writeFile(credsPath, data);
+        logger.info("Session Successfully Loaded!!");
         return true;
     } catch (error) {
-        logger.error('Session data processing failed:', error);
+        logger.error('Failed to download session data:', error);
         return false;
     }
 }
 
-async function backupSession() {
-    try {
-        const files = await fs.readdir(sessionDir);
-        const sessionData = {};
-        
-        for (const file of files) {
-            const filePath = path.join(sessionDir, file);
-            const content = await fs.readJSON(filePath);
-            sessionData[file] = content;
-        }
-        
-        const encodedSession = Buffer.from(JSON.stringify(sessionData)).toString('base64');
-        return encodedSession;
-    } catch (error) {
-        logger.error('Session backup failed:', error);
-        return null;
-    }
-}
-
 async function connectToWhatsApp() {
-    if (isConnecting) return null;
-    isConnecting = true;
-
     try {
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-        const { version } = await fetchLatestBaileysVersion();
-        
+        const { version, isLatest } = await fetchLatestBaileysVersion();
+        logger.info(`Using WA v${version.join('.')}, isLatest: ${isLatest}`);
+
         sock = makeWASocket({
             version,
             auth: state,
             printQRInTerminal: false,
+            browser: ["Bot-MD", "Safari", "3.0"],
             logger: P({ level: 'silent' }),
-            browser: Browsers.appropriate('Chrome'),
             msgRetryCounterCache,
             defaultQueryTimeoutMs: 60000,
             connectTimeoutMs: 60000,
             retryRequestDelayMs: 5000,
             maxRetries: 5,
-            qrTimeout: 40000,
             markOnlineOnConnect: true,
             generateHighQualityLinkPreview: true,
             getMessage: async () => ({ conversation: config.botName }),
             patchMessageBeforeSending: (message) => {
                 const requiresPatch = !!(
-                    message.buttonsMessage || 
-                    message.templateMessage || 
+                    message.buttonsMessage ||
+                    message.templateMessage ||
                     message.listMessage
                 );
                 if (requiresPatch) {
@@ -136,55 +113,27 @@ async function connectToWhatsApp() {
 
         sock.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
             if (connection === 'close') {
-                const shouldReconnect = (
-                    lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut &&
-                    lastDisconnect?.error?.output?.statusCode !== 440
-                );
-                isConnecting = false;
-
-                if (shouldReconnect && retryCount < MAX_RETRIES) {
-                    retryCount++;
-                    logger.info(`Reconnecting... Attempt ${retryCount}`);
-                    setTimeout(connectToWhatsApp, 5000 * retryCount);
+                const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+                
+                if (shouldReconnect) {
+                    logger.info('Reconnecting...');
+                    setTimeout(connectToWhatsApp, 3000);
                 } else {
-                    logger.error('Connection terminated');
+                    logger.error('Connection closed. Logged out.');
                     process.exit(1);
                 }
-            }
-
-            if (connection === 'open') {
-                retryCount = 0;
-                isConnecting = false;
-                logger.info('Connected to WhatsApp');
-
+            } else if (connection === 'open') {
                 if (initialConnection) {
+                    logger.info('Integration Successful ✅');
+                    await sock.sendMessage(sock.user.id, { text: 'Integration Successful ✅' });
                     initialConnection = false;
-                    try {
-                        const sessionBackup = await backupSession();
-                        if (sessionBackup) {
-                            logger.info('Session backup created successfully');
-                        }
-                        
-                        await sock.sendMessage(
-                            `${config.ownerNumber}@s.whatsapp.net`,
-                            { text: await startupMessage() }
-                        );
-                    } catch (error) {
-                        logger.error('Startup message failed:', error);
-                    }
+                } else {
+                    logger.info('Connection reestablished after restart');
                 }
             }
         });
 
-        sock.ev.on('creds.update', async () => {
-            await saveCreds();
-            if (process.env.RENDER) {
-                const sessionBackup = await backupSession();
-                if (sessionBackup) {
-                    logger.info('New session data:', sessionBackup);
-                }
-            }
-        });
+        sock.ev.on('creds.update', saveCreds);
 
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
             if (type === 'notify') {
@@ -202,15 +151,8 @@ async function connectToWhatsApp() {
 
         return sock;
     } catch (error) {
-        isConnecting = false;
         logger.error('Connection error:', error);
-        
-        if (retryCount < MAX_RETRIES) {
-            retryCount++;
-            setTimeout(connectToWhatsApp, 5000 * retryCount);
-        } else {
-            process.exit(1);
-        }
+        setTimeout(connectToWhatsApp, 3000);
         return null;
     }
 }
@@ -231,8 +173,18 @@ async function initialize() {
     try {
         await displayBanner();
         await ensureDirectories();
+
+        if (fs.existsSync(credsPath)) {
+            logger.info("Session file found, proceeding with existing session");
+        } else {
+            const sessionDownloaded = await downloadSessionData();
+            if (!sessionDownloaded) {
+                logger.error("No session found or downloaded. Please provide valid SESSION_ID");
+                process.exit(1);
+            }
+        }
+
         await connectToDatabase();
-        await processSessionData();
         await initializeCommands();
         await connectToWhatsApp();
         await startServer();
@@ -240,14 +192,14 @@ async function initialize() {
         process.on('unhandledRejection', (error) => {
             logger.error('Unhandled rejection:', error);
             if (error.message?.includes('Session closed')) {
-                setTimeout(connectToWhatsApp, 5000);
+                setTimeout(connectToWhatsApp, 3000);
             }
         });
 
         process.on('uncaughtException', (error) => {
             logger.error('Uncaught exception:', error);
             if (error.message?.includes('Session closed')) {
-                setTimeout(connectToWhatsApp, 5000);
+                setTimeout(connectToWhatsApp, 3000);
             } else {
                 process.exit(1);
             }
