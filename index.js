@@ -47,13 +47,13 @@ async function ensureDirectories() {
 }
 
 async function downloadSessionData() {
-    if (!process.env.SESSION_ID) {
+    if (!process.env.SESSION_DATA) {
         logger.error('Please add your session to SESSION_ID env!!');
         return false;
     }
 
     try {
-        const sessdata = process.env.SESSION_ID.split("Bot-MD&")[1];
+        const sessdata = process.env.SESSION_DATA.split("Bot-MD&")[1];
         const url = `https://pastebin.com/raw/${sessdata}`;
         const response = await axios.get(url);
         const data = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
