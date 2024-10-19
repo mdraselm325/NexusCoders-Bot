@@ -29,7 +29,7 @@
     "fs-extra": "^11.2.0",
     "gradient-string": "^2.0.2",
     "helmet": "^7.1.0",
-    "jimp": "^0.22.10",
+    "jimp": "0.16.13",
     "libsignal": "git+https://github.com/adiwajshing/libsignal-node",
     "link-preview-js": "^3.0.5",
     "moment-timezone": "^0.5.43",
@@ -85,12 +85,10 @@
     "url": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot/issues"
   },
   "homepage": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot#readme",
-  "resolutions": {
-    "jimp": "^0.22.10",
-    "glob": "^10.3.10",
-    "@eslint/eslintrc": "^2.1.4"
-  },
   "overrides": {
-    "glob": "^10.3.10"
+    "jimp": "0.16.13",
+    "@whiskeysockets/baileys": {
+      "jimp": "0.16.13"
+    }
   }
 }
