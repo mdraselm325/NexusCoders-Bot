@@ -8,10 +8,8 @@
     "dev": "nodemon index.js",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "clean": "rm -rf node_modules auth_info_baileys temp assets logs && rm -f package-lock.json",
-    "reset": "npm run clean && npm install",
-    "docker:build": "docker build -t nexuscoders-whatsapp-bot .",
-    "docker:run": "docker run -p 3000:3000 nexuscoders-whatsapp-bot"
+    "clean": "rm -rf node_modules && rm -rf package-lock.json",
+    "reset": "npm run clean && npm install"
   },
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
@@ -55,13 +53,44 @@
     "winston-daily-rotate-file": "^4.7.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^2.1.4",
+    "@types/node": "^20.10.4",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "@typescript-eslint/parser": "^6.13.2",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.0.1",
     "nodemon": "^3.0.2",
-    "prettier": "^3.1.0"
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NexusCoders-cyber/NexusCoders-whatsapp-Bot.git"
+  },
+  "keywords": [
+    "whatsapp-bot",
+    "baileys",
+    "bot",
+    "whatsapp",
+    "automation",
+    "nexuscoders"
+  ],
+  "author": "NexusCoders",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot/issues"
+  },
+  "homepage": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot#readme",
+  "resolutions": {
+    "jimp": "^0.22.10",
+    "glob": "^10.3.10",
+    "@eslint/eslintrc": "^2.1.4"
+  },
+  "overrides": {
+    "glob": "^10.3.10"
   }
 }
