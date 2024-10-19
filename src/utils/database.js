@@ -4,7 +4,7 @@ const logger = require('./logger');
 
 async function connectToDatabase() {
     try {
-        await mongoose.connect(config.mongoUri, {
+        await mongoose.connect('mongodb://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/whatsappbot', {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
