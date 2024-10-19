@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "clean": "rm -rf node_modules && rm -rf package-lock.json",
-    "reset": "npm run clean && npm install"
+    "reset": "npm run clean && npm install",
+    "install": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
@@ -43,7 +44,7 @@
     "protobufjs": "^7.2.5",
     "qrcode": "^1.5.3",
     "qrcode-terminal": "^0.12.0",
-    "sharp": "^0.33.0",
+    "sharp": "0.32.6",
     "socket.io": "^4.7.2",
     "util": "^0.12.5",
     "uuid": "^9.0.1",
@@ -87,8 +88,10 @@
   "homepage": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot#readme",
   "overrides": {
     "jimp": "0.16.13",
+    "sharp": "0.32.6",
     "@whiskeysockets/baileys": {
-      "jimp": "0.16.13"
+      "jimp": "0.16.13",
+      "sharp": "0.32.6"
     }
   }
 }
