@@ -97,7 +97,7 @@ async function connectToWhatsApp() {
         sock = makeWASocket({
             version,
             auth: state,
-            printQRInTerminal: true,
+            printQRInTerminal: false,
             logger: P({ level: 'silent' }),
             browser: Browsers.appropriate('Chrome'),
             msgRetryCounterCache,
