@@ -48,20 +48,17 @@ async function ensureDirectories() {
 
 async function downloadSessionData() {
     if (!process.env.SESSION_DATA) {
-        logger.error('Please add your session to SESSION_ID env!!');
+        logger.error('Please add your session to SESSION_DATA env!!');
         return false;
     }
 
     try {
-        const sessdata = process.env.SESSION_DATA.split("Bot-MD&")[1];
-        const url = `https://pastebin.com/raw/${sessdata}`;
-        const response = await axios.get(url);
-        const data = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        const data = process.env.SESSION_DATA;
         await fs.writeFile(credsPath, data);
         logger.info("Session Successfully Loaded!!");
         return true;
     } catch (error) {
-        logger.error('Failed to download session data:', error);
+        logger.error('Failed to load session data:', error);
         return false;
     }
 }
@@ -76,7 +73,7 @@ async function connectToWhatsApp() {
             version,
             auth: state,
             printQRInTerminal: false,
-            browser: ["Bot-MD", "Safari", "3.0"],
+            browser: Browsers.appropriate('Chrome'),
             logger: P({ level: 'silent' }),
             msgRetryCounterCache,
             defaultQueryTimeoutMs: 60000,
@@ -179,7 +176,7 @@ async function initialize() {
         } else {
             const sessionDownloaded = await downloadSessionData();
             if (!sessionDownloaded) {
-                logger.error("No session found or downloaded. Please provide valid SESSION_ID");
+                logger.error("No session found or downloaded. Please provide valid SESSION_DATA");
                 process.exit(1);
             }
         }
