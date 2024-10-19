@@ -4,7 +4,8 @@ const {
     Browsers,
     DisconnectReason,
     useMultiFileAuthState,
-    fetchLatestBaileysVersion
+    fetchLatestBaileysVersion,
+    makeInMemoryStore
 } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const express = require('express');
@@ -21,6 +22,7 @@ const { initializeCommands } = require('./src/handlers/commandHandler');
 const { startupMessage } = require('./src/utils/messages');
 
 const msgRetryCounterCache = new NodeCache();
+const store = makeInMemoryStore({});
 const app = express();
 let sock = null;
 let initialConnection = true;
@@ -53,11 +55,34 @@ async function processSessionData() {
     try {
         const sessionData = JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString());
         await fs.emptyDir(sessionDir);
-        await fs.writeJSON(path.join(sessionDir, 'creds.json'), sessionData, { spaces: 2 });
+        
+        for (const [key, value] of Object.entries(sessionData)) {
+            const filePath = path.join(sessionDir, key);
+            await fs.outputJSON(filePath, value, { spaces: 2 });
+        }
         return true;
     } catch (error) {
         logger.error('Session data processing failed:', error);
         return false;
+    }
+}
+
+async function backupSession() {
+    try {
+        const files = await fs.readdir(sessionDir);
+        const sessionData = {};
+        
+        for (const file of files) {
+            const filePath = path.join(sessionDir, file);
+            const content = await fs.readJSON(filePath);
+            sessionData[file] = content;
+        }
+        
+        const encodedSession = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+        return encodedSession;
+    } catch (error) {
+        logger.error('Session backup failed:', error);
+        return null;
     }
 }
 
@@ -83,18 +108,44 @@ async function connectToWhatsApp() {
             qrTimeout: 40000,
             markOnlineOnConnect: true,
             generateHighQualityLinkPreview: true,
-            getMessage: async () => ({ conversation: config.botName })
+            getMessage: async () => ({ conversation: config.botName }),
+            patchMessageBeforeSending: (message) => {
+                const requiresPatch = !!(
+                    message.buttonsMessage || 
+                    message.templateMessage || 
+                    message.listMessage
+                );
+                if (requiresPatch) {
+                    message = {
+                        viewOnceMessage: {
+                            message: {
+                                messageContextInfo: {
+                                    deviceListMetadataVersion: 2,
+                                    deviceListMetadata: {},
+                                },
+                                ...message,
+                            },
+                        },
+                    };
+                }
+                return message;
+            }
         });
+
+        store.bind(sock.ev);
 
         sock.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
             if (connection === 'close') {
-                const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+                const shouldReconnect = (
+                    lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut &&
+                    lastDisconnect?.error?.output?.statusCode !== 440
+                );
                 isConnecting = false;
 
                 if (shouldReconnect && retryCount < MAX_RETRIES) {
                     retryCount++;
                     logger.info(`Reconnecting... Attempt ${retryCount}`);
-                    setTimeout(connectToWhatsApp, 5000);
+                    setTimeout(connectToWhatsApp, 5000 * retryCount);
                 } else {
                     logger.error('Connection terminated');
                     process.exit(1);
@@ -109,6 +160,11 @@ async function connectToWhatsApp() {
                 if (initialConnection) {
                     initialConnection = false;
                     try {
+                        const sessionBackup = await backupSession();
+                        if (sessionBackup) {
+                            logger.info('Session backup created successfully');
+                        }
+                        
                         await sock.sendMessage(
                             `${config.ownerNumber}@s.whatsapp.net`,
                             { text: await startupMessage() }
@@ -123,8 +179,10 @@ async function connectToWhatsApp() {
         sock.ev.on('creds.update', async () => {
             await saveCreds();
             if (process.env.RENDER) {
-                const credsFile = await fs.readFile(path.join(sessionDir, 'creds.json'), 'utf8');
-                logger.info('New session data:', Buffer.from(credsFile).toString('base64'));
+                const sessionBackup = await backupSession();
+                if (sessionBackup) {
+                    logger.info('New session data:', sessionBackup);
+                }
             }
         });
 
@@ -149,7 +207,7 @@ async function connectToWhatsApp() {
         
         if (retryCount < MAX_RETRIES) {
             retryCount++;
-            setTimeout(connectToWhatsApp, 5000);
+            setTimeout(connectToWhatsApp, 5000 * retryCount);
         } else {
             process.exit(1);
         }
@@ -181,12 +239,18 @@ async function initialize() {
 
         process.on('unhandledRejection', (error) => {
             logger.error('Unhandled rejection:', error);
-            if (error.message?.includes('Session closed')) process.exit(1);
+            if (error.message?.includes('Session closed')) {
+                setTimeout(connectToWhatsApp, 5000);
+            }
         });
 
         process.on('uncaughtException', (error) => {
             logger.error('Uncaught exception:', error);
-            process.exit(1);
+            if (error.message?.includes('Session closed')) {
+                setTimeout(connectToWhatsApp, 5000);
+            } else {
+                process.exit(1);
+            }
         });
     } catch (error) {
         logger.error('Initialization failed:', error);
