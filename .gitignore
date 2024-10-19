@@ -2,12 +2,7 @@ node_modules/
 .env
 auth_info_baileys/
 temp/
-assets/
 logs/
 *.log
 .DS_Store
 package-lock.json
-coverage/
-.vscode/
-sessions/
-media/
