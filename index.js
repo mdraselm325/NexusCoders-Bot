@@ -14,7 +14,6 @@ const path = require('path');
 const NodeCache = require('node-cache');
 const gradient = require('gradient-string');
 const figlet = require('figlet');
-const axios = require('axios');
 const { connectToDatabase } = require('./src/utils/database');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
@@ -46,19 +45,20 @@ async function ensureDirectories() {
     await fs.ensureDir('logs');
 }
 
-async function downloadSessionData() {
+async function loadSessionData() {
     if (!process.env.SESSION_DATA) {
-        logger.error('Please add your session to SESSION_DATA env!!');
+        logger.error('SESSION_DATA environment variable is required');
         return false;
     }
 
     try {
-        const data = process.env.SESSION_DATA;
-        await fs.writeFile(credsPath, data);
-        logger.info("Session Successfully Loaded!!");
+        const sessionData = process.env.SESSION_DATA;
+        const decodedSession = Buffer.from(sessionData, 'base64').toString('utf8');
+        await fs.writeFile(credsPath, decodedSession);
+        logger.info("Session data loaded successfully");
         return true;
     } catch (error) {
-        logger.error('Failed to load session data:', error);
+        logger.error('Failed to load session:', error);
         return false;
     }
 }
@@ -67,7 +67,6 @@ async function connectToWhatsApp() {
     try {
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         const { version, isLatest } = await fetchLatestBaileysVersion();
-        logger.info(`Using WA v${version.join('.')}, isLatest: ${isLatest}`);
 
         sock = makeWASocket({
             version,
@@ -116,16 +115,16 @@ async function connectToWhatsApp() {
                     logger.info('Reconnecting...');
                     setTimeout(connectToWhatsApp, 3000);
                 } else {
-                    logger.error('Connection closed. Logged out.');
+                    logger.error('Connection closed. You are logged out.');
                     process.exit(1);
                 }
             } else if (connection === 'open') {
                 if (initialConnection) {
-                    logger.info('Integration Successful ✅');
-                    await sock.sendMessage(sock.user.id, { text: 'Integration Successful ✅' });
+                    logger.info('WhatsApp connection established');
+                    await sock.sendMessage(sock.user.id, { text: 'Bot is now online!' });
                     initialConnection = false;
                 } else {
-                    logger.info('Connection reestablished after restart');
+                    logger.info('Connection restored');
                 }
             }
         });
@@ -139,7 +138,7 @@ async function connectToWhatsApp() {
                         try {
                             await messageHandler(sock, msg);
                         } catch (error) {
-                            logger.error('Message handling failed:', error);
+                            logger.error('Message handling error:', error);
                         }
                     }
                 }
@@ -172,11 +171,11 @@ async function initialize() {
         await ensureDirectories();
 
         if (fs.existsSync(credsPath)) {
-            logger.info("Session file found, proceeding with existing session");
+            logger.info("Using existing session");
         } else {
-            const sessionDownloaded = await downloadSessionData();
-            if (!sessionDownloaded) {
-                logger.error("No session found or downloaded. Please provide valid SESSION_DATA");
+            const sessionLoaded = await loadSessionData();
+            if (!sessionLoaded) {
+                logger.error("Failed to load session data");
                 process.exit(1);
             }
         }
