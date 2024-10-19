@@ -14,11 +14,11 @@ const path = require('path');
 const NodeCache = require('node-cache');
 const gradient = require('gradient-string');
 const figlet = require('figlet');
-const { connectToDatabase } = require('./src/utils/database');
-const logger = require('./src/utils/logger');
-const messageHandler = require('./src/handlers/messageHandler');
-const config = require('./src/config');
-const { initializeCommands } = require('./src/handlers/commandHandler');
+const { connectToDatabase } = require('./src/utils/database.js');
+const logger = require('./src/utils/logger.js');
+const messageHandler = require('./src/handlers/messageHandler.js');
+const config = require('./src/config.js');
+const { initializeCommands } = require('./src/handlers/commandHandler.js');
 const { startupMessage } = require('./src/utils/messages');
 
 const msgRetryCounterCache = new NodeCache();
