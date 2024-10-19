@@ -2,7 +2,7 @@ module.exports = {
     botName: process.env.BOT_NAME || 'NexusCoders',
     prefix: process.env.PREFIX || '!',
     ownerNumber: process.env.OWNER_NUMBER || '',
-    mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/nexuscoders',
+    mongoUri: process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/',
     commandCooldown: 3000,
     maxWarnings: 3,
     disabledCommands: [],
