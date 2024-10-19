@@ -4,7 +4,7 @@ const logger = require('./logger');
 
 async function connectToDatabase() {
     try {
-        await mongoose.connect('mongodb://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/whatsappbot', {
+        await mongoose.connect('mongodb+srv://arisonbeckham:arisonbeckham@nexuscoders.yxxbj.mongodb.net/?retryWrites=true&w=majority&appName=NexusCoders', {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
