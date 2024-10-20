@@ -1,86 +1,49 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    userId: {
+    jid: {
         type: String,
         required: true,
         unique: true
     },
     name: String,
-    banned: {
+    isAdmin: {
         type: Boolean,
         default: false
     },
-    banReason: String,
-    commandsUsed: {
-        type: Number,
-        default: 0
+    isBanned: {
+        type: Boolean,
+        default: false
     },
     warns: {
         type: Number,
         default: 0
     },
-    lastInteraction: Date,
+    xp: {
+        type: Number,
+        default: 0
+    },
+    level: {
+        type: Number,
+        default: 1
+    },
+    lastCommandUsed: Date,
     joinedAt: {
         type: Date,
         default: Date.now
-    },
-    settings: {
-        language: {
-            type: String,
-            default: 'en'
-        },
-        notifications: {
-            type: Boolean,
-            default: true
-        }
     }
 }, {
     timestamps: true
 });
 
-const User = mongoose.model('User', userSchema);
-
-async function getUser(userId) {
-    let user = await User.findOne({ userId });
-    if (!user) {
-        user = await User.create({
-            userId,
-            lastInteraction: new Date()
-        });
+userSchema.methods.addXP = async function(amount) {
+    this.xp += amount;
+    const nextLevel = Math.floor(0.1 * Math.sqrt(this.xp));
+    if (nextLevel > this.level) {
+        this.level = nextLevel;
     }
-    return user;
-}
-
-async function updateUser(userId, update) {
-    const updatedUser = await User.findOneAndUpdate(
-        { userId },
-        { ...update, lastInteraction: new Date() },
-        { new: true, upsert: true }
-    );
-    return updatedUser;
-}
-
-async function banUser(userId, reason) {
-    const user = await updateUser(userId, {
-        banned: true,
-        banReason: reason
-    });
-    return user;
-}
-
-async function unbanUser(userId) {
-    const user = await updateUser(userId, {
-        banned: false,
-        banReason: null
-    });
-    return user;
-}
-
-module.exports = {
-    User,
-    getUser,
-    updateUser,
-    banUser,
-    unbanUser
+    await this.save();
+    return this.level;
 };
+
+module.exports = mongoose.model('User', userSchema);
