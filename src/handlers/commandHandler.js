@@ -12,6 +12,9 @@ async function loadCommand(commandPath) {
         if (command.name) {
             commands.set(command.name, command);
             logger.info(`Loaded command: ${command.name}`);
+            if (command.aliases) {
+                command.aliases.forEach(alias => commands.set(alias, command));
+            }
         }
     } catch (error) {
         logger.error(`Error loading command from ${commandPath}:`, error);
@@ -34,9 +37,11 @@ async function loadCommandsFromDirectory(directory) {
 }
 
 async function initializeCommands() {
+    commands.clear();
     const commandsDir = path.join(__dirname, '../commands');
     await loadCommandsFromDirectory(commandsDir);
     logger.info(`Loaded ${commands.size} commands`);
+    return commands;
 }
 
 async function handleCommand(sock, msg, args, commandName) {
@@ -58,16 +63,17 @@ async function handleCommand(sock, msg, args, commandName) {
         }
 
         if (command.ownerOnly && sender !== config.ownerNumber) {
-            await sock.sendMessage(sender, { text: config.messages.permissionError });
+            await sock.sendMessage(sender, { text: "This command is only for the owner." });
             return;
         }
 
         const now = Date.now();
-        const cooldown = command.cooldown || config.commandCooldown;
+        const cooldown = command.cooldown || 3;
         const lastUsed = user.lastCommandUsed ? user.lastCommandUsed.getTime() : 0;
         
         if (now - lastUsed < cooldown * 1000) {
-            await sock.sendMessage(sender, { text: config.messages.cooldownError });
+            const remaining = ((cooldown * 1000) - (now - lastUsed)) / 1000;
+            await sock.sendMessage(sender, { text: `Please wait ${remaining.toFixed(1)} seconds before using this command again.` });
             return;
         }
 
@@ -77,7 +83,7 @@ async function handleCommand(sock, msg, args, commandName) {
 
     } catch (error) {
         logger.error(`Error executing command ${commandName}:`, error);
-        await sock.sendMessage(msg.key.remoteJid, { text: config.messages.error });
+        await sock.sendMessage(msg.key.remoteJid, { text: "An error occurred while executing this command." });
     }
 }
 
