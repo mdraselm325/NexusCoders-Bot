@@ -1,16 +1,23 @@
 module.exports = {
     name: 'ping',
     description: 'Check bot response time',
-    usage: 'ping',
-    aliases: ['speed'],
-    async execute({ sock, msg, chatId }) {
+    usage: '!ping',
+    cooldown: 5,
+    category: 'general',
+    
+    async execute(sock, msg) {
         const start = Date.now();
-        const message = await sock.sendMessage(chatId, { text: 'Pinging...' });
-        const latency = Date.now() - start;
-
-        await sock.sendMessage(chatId, {
-            text: `🏓 Pong!\nResponse Time: ${latency}ms`,
-            edit: message.key
-        });
+        
+        await sock.sendMessage(msg.key.remoteJid, { text: '📡 Pinging...' });
+        
+        const end = Date.now();
+        const responseTime = end - start;
+        
+        const pingMessage = `🏓 Pong!\n\n` +
+                          `📊 Response Time: ${responseTime}ms\n` +
+                          `🔌 API Latency: ${Math.round(sock.ws.ping)}ms\n` +
+                          `💾 Uptime: ${Math.floor(process.uptime())}s`;
+        
+        await sock.sendMessage(msg.key.remoteJid, { text: pingMessage });
     }
 };
