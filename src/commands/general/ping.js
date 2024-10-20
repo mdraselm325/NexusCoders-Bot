@@ -1,10 +1,16 @@
 module.exports = {
     name: 'ping',
     description: 'Check bot response time',
-    async execute({ sock, msg, sender }) {
+    usage: 'ping',
+    aliases: ['speed'],
+    async execute({ sock, msg, chatId }) {
         const start = Date.now();
-        await sock.sendMessage(sender, { text: 'Pinging...' });
-        const end = Date.now();
-        await sock.sendMessage(sender, { text: `Pong! 🏓\nResponse time: ${end - start}ms` });
+        const message = await sock.sendMessage(chatId, { text: 'Pinging...' });
+        const latency = Date.now() - start;
+
+        await sock.sendMessage(chatId, {
+            text: `🏓 Pong!\nResponse Time: ${latency}ms`,
+            edit: message.key
+        });
     }
 };
