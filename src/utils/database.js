@@ -4,28 +4,27 @@ const logger = require('./logger');
 
 async function connectToDatabase() {
     try {
-        await mongoose.connect(config.database.uri, {
+        await mongoose.connect(config.mongoUri, {
             useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
+            useUnifiedTopology: true
         });
-
-        logger.info('Connected to MongoDB database');
-
-        mongoose.connection.on('error', (err) => {
-            logger.error('MongoDB connection error:', err);
-        });
-
-        mongoose.connection.on('disconnected', () => {
-            logger.warn('MongoDB disconnected. Attempting to reconnect...');
-            setTimeout(connectToDatabase, 5000);
-        });
-
+        logger.info('Connected to MongoDB');
     } catch (error) {
-        logger.error('Database connection failed:', error);
+        logger.error('MongoDB connection error:', error);
         process.exit(1);
     }
 }
 
-module.exports = { connectToDatabase };
+mongoose.connection.on('disconnected', () => {
+    logger.warn('MongoDB disconnected. Attempting to reconnect...');
+    setTimeout(connectToDatabase, 5000);
+});
+
+mongoose.connection.on('error', (err) => {
+    logger.error('MongoDB error:', err);
+});
+
+module.exports = {
+    connectToDatabase,
+    mongoose
+};
