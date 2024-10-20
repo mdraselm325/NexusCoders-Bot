@@ -1,46 +1,48 @@
-const config = require('../config');
+const startupMessage = `
+╔══════════════════════════╗
+║     BOT STARTUP INFO     ║
+╚══════════════════════════╝
 
-const messages = {
-    startupMessage: `
-🤖 ${config.botName} v${config.version}
-━━━━━━━━━━━━━━━
-📱 Status: Online
-⚡ Prefix: ${config.prefix}
-👑 Owner: ${config.owner.name}
-━━━━━━━━━━━━━━━
-Type ${config.prefix}help for commands
-    `,
+▸ Status: Online
+▸ Time: ${new Date().toLocaleString()}
+▸ Mode: Development
+▸ Version: 1.0.0
 
-    noPermission: "⚠️ You don't have permission to use this command.",
-    cooldown: (time) => `⏰ Please wait ${time} seconds before using this command again.`,
-    error: "❌ An error occurred while processing your request.",
-    banned: "🚫 You are banned from using the bot.",
-    ownerOnly: "👑 This command can only be used by the bot owner.",
-    adminOnly: "⚠️ This command can only be used by group admins.",
-    groupOnly: "👥 This command can only be used in groups.",
-    privateOnly: "📱 This command can only be used in private chat.",
-    
-    help: {
-        header: `
-━━━ ${config.botName} Help ━━━
-Prefix: ${config.prefix}
-        `,
-        category: (name) => `\n━━━ ${name} Commands ━━━\n`,
-        command: (cmd) => `${config.prefix}${cmd.name} ${cmd.usage || ''}
-└ ${cmd.description}\n`,
-        footer: `
-━━━━━━━━━━━━━━━
-For more info about a command:
-${config.prefix}help <command>
-        `
-    },
+╔══════════════════════════╗
+║      SYSTEM STATUS       ║
+╚══════════════════════════╝
 
-    ban: {
-        success: "✅ User has been banned from using the bot.",
-        already: "⚠️ User is already banned.",
-        notBanned: "⚠️ User is not banned.",
-        unbanned: "✅ User has been unbanned."
-    }
+▸ Platform: ${process.platform}
+▸ Node Version: ${process.version}
+▸ Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB
+▸ CPU Usage: ${process.cpuUsage().user}
+`;
+
+const groupEvents = {
+    welcome: (username) => `Welcome ${username} to our group! 🎉`,
+    goodbye: (username) => `Goodbye ${username}! 👋`,
+    promote: (username) => `${username} has been promoted to admin! 🎊`,
+    demote: (username) => `${username} has been demoted from admin! 📉`
 };
 
-module.exports = messages;
+const errorMessages = {
+    commandNotFound: "❌ Command not found! Use !help to see available commands.",
+    invalidArgs: "❌ Invalid arguments! Check !help for proper usage.",
+    noPermission: "❌ You don't have permission to use this command!",
+    cooldown: "⏳ Please wait before using this command again.",
+    error: "❌ An error occurred while executing this command."
+};
+
+const successMessages = {
+    commandSuccess: "✅ Command executed successfully!",
+    settingsUpdated: "✅ Settings updated successfully!",
+    userBanned: "✅ User has been banned successfully!",
+    userUnbanned: "✅ User has been unbanned successfully!"
+};
+
+module.exports = {
+    startupMessage,
+    groupEvents,
+    errorMessages,
+    successMessages
+};
