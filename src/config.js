@@ -4,11 +4,11 @@ module.exports = {
     prefix: "!",
     owner: {
         name: "NexusCoders",
-        number: "your_number@s.whatsapp.net",
+        number: "2347075663318",
     },
     support: {
-        group: "https://chat.whatsapp.com/your_group",
-        channel: "https://t.me/your_channel"
+        group: "https://chat.whatsapp.com/EoSi5ruqq1m6psIvKp9EQn",
+        channel: "https://whatsapp.com/channel/0029VarItlZ8fewz4nyakm1u"
     },
     database: {
         uri: process.env.DB_URI || "mongodb+srv://arisonbeckham:arisonbeckham@nexuscoders.yxxbj.mongodb.net/?retryWrites=true&w=majority&appName=NexusCoders"
