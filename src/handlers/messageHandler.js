@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 
 async function messageHandler(sock, msg) {
     try {
-        if (!msg.message) return;
+        if (!msg.message || msg.key.fromMe) return;
         
         const messageType = Object.keys(msg.message)[0];
         if (messageType === 'protocolMessage' || messageType === 'senderKeyDistributionMessage') return;
@@ -17,19 +17,16 @@ async function messageHandler(sock, msg) {
                        
         if (!content) return;
 
-        // Auto-read message if enabled
-        if (config.features.autoRead) {
+        if (config.autoRead) {
             await sock.readMessages([msg.key]);
         }
 
-        // Check if message starts with prefix
         if (!content.startsWith(config.prefix)) return;
 
-        // Parse command and arguments
-        const [commandName, ...args] = content.slice(config.prefix.length).trim().split(' ');
+        const [cmd, ...args] = content.slice(config.prefix.length).trim().split(/\s+/);
+        if (!cmd) return;
 
-        // Handle the command
-        await handleCommand(sock, msg, args, commandName.toLowerCase());
+        await handleCommand(sock, msg, args, cmd.toLowerCase());
 
     } catch (error) {
         logger.error('Error in message handler:', error);
