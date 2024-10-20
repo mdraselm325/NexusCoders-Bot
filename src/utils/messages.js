@@ -1,27 +1,46 @@
-const os = require('os');
 const config = require('../config');
 
-async function startupMessage() {
-    const uptime = process.uptime();
-    const memory = process.memoryUsage();
-    const platform = os.platform();
-    const arch = os.arch();
-    const cpus = os.cpus().length;
+const messages = {
+    startupMessage: `
+🤖 ${config.botName} v${config.version}
+━━━━━━━━━━━━━━━
+📱 Status: Online
+⚡ Prefix: ${config.prefix}
+👑 Owner: ${config.owner.name}
+━━━━━━━━━━━━━━━
+Type ${config.prefix}help for commands
+    `,
 
-    return `
-🤖 *${config.botName} Started*
-
-🖥️ *System Info*
-Platform: ${platform}
-Architecture: ${arch}
-CPUs: ${cpus}
-Memory Used: ${Math.round(memory.heapUsed / 1024 / 1024)}MB
-Uptime: ${Math.floor(uptime)} seconds
-
-⚙️ *Bot Configuration*
+    noPermission: "⚠️ You don't have permission to use this command.",
+    cooldown: (time) => `⏰ Please wait ${time} seconds before using this command again.`,
+    error: "❌ An error occurred while processing your request.",
+    banned: "🚫 You are banned from using the bot.",
+    ownerOnly: "👑 This command can only be used by the bot owner.",
+    adminOnly: "⚠️ This command can only be used by group admins.",
+    groupOnly: "👥 This command can only be used in groups.",
+    privateOnly: "📱 This command can only be used in private chat.",
+    
+    help: {
+        header: `
+━━━ ${config.botName} Help ━━━
 Prefix: ${config.prefix}
-Owner: ${config.ownerNumber}
-`;
-}
+        `,
+        category: (name) => `\n━━━ ${name} Commands ━━━\n`,
+        command: (cmd) => `${config.prefix}${cmd.name} ${cmd.usage || ''}
+└ ${cmd.description}\n`,
+        footer: `
+━━━━━━━━━━━━━━━
+For more info about a command:
+${config.prefix}help <command>
+        `
+    },
 
-module.exports = { startupMessage };
+    ban: {
+        success: "✅ User has been banned from using the bot.",
+        already: "⚠️ User is already banned.",
+        notBanned: "⚠️ User is not banned.",
+        unbanned: "✅ User has been unbanned."
+    }
+};
+
+module.exports = messages;
