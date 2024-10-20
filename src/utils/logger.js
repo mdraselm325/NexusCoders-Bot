@@ -1,27 +1,31 @@
-const fs = require('fs-extra');
+const winston = require('winston');
 const path = require('path');
 
-const logFile = path.join(process.cwd(), 'logs', 'bot.log');
-
-const logger = {
-    info: (message, ...args) => {
-        console.log(`[INFO] ${message}`, ...args);
-        writeToFile('INFO', message, args);
-    },
-    error: (message, ...args) => {
-        console.error(`[ERROR] ${message}`, ...args);
-        writeToFile('ERROR', message, args);
-    },
-    warn: (message, ...args) => {
-        console.warn(`[WARN] ${message}`, ...args);
-        writeToFile('WARN', message, args);
-    }
-};
-
-function writeToFile(level, message, args) {
-    const timestamp = new Date().toISOString();
-    const logMessage = `${timestamp} [${level}] ${message} ${args.join(' ')}\n`;
-    fs.appendFileSync(logFile, logMessage);
-}
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.File({ 
+            filename: path.join('logs', 'error.log'), 
+            level: 'error',
+            maxsize: 5242880,
+            maxFiles: 5 
+        }),
+        new winston.transports.File({ 
+            filename: path.join('logs', 'combined.log'),
+            maxsize: 5242880,
+            maxFiles: 5 
+        }),
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.colorize(),
+                winston.format.simple()
+            )
+        })
+    ]
+});
 
 module.exports = logger;
