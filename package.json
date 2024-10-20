@@ -10,8 +10,7 @@
     "format": "prettier --write .",
     "clean": "rm -rf node_modules && rm -rf package-lock.json",
     "reset": "npm run clean && npm install",
-    "build": "npm install --legacy-peer-deps && npm ci",
-    "postinstall": "npm ci"
+    "build": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
