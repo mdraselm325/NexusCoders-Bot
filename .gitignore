@@ -1,8 +1,9 @@
 node_modules/
 .env
-auth_info_baileys/
-temp/
-logs/
+session/
 *.log
+baileys_store.json
 .DS_Store
-package-lock.json
+coverage/
+tmp/
+temp/
