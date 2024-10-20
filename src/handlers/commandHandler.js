@@ -1,60 +1,88 @@
-const fs = require('fs').promises;
+const fs = require('fs-extra');
 const path = require('path');
 const logger = require('../utils/logger');
+const config = require('../config');
+const User = require('../models/user');
 
-let commands = new Map();
+const commands = new Map();
 
-async function loadCommandsFromDirectory(directory) {
+async function loadCommand(commandPath) {
     try {
-        const items = await fs.readdir(directory, { withFileTypes: true });
-
-        for (const item of items) {
-            const fullPath = path.join(directory, item.name);
-
-            if (item.isDirectory()) {
-                await loadCommandsFromDirectory(fullPath);
-            } else if (item.name.endsWith('.js')) {
-                try {
-                    const command = require(fullPath);
-                    if (command.name && command.execute) {
-                        commands.set(command.name.toLowerCase(), command);
-                        if (command.aliases) {
-                            command.aliases.forEach(alias => 
-                                commands.set(alias.toLowerCase(), command)
-                            );
-                        }
-                        logger.info(`Loaded command: ${command.name}`);
-                    }
-                } catch (error) {
-                    logger.error(`Error loading command ${item.name}:`, error);
-                }
-            }
+        const command = require(commandPath);
+        if (command.name) {
+            commands.set(command.name, command);
+            logger.info(`Loaded command: ${command.name}`);
         }
     } catch (error) {
-        logger.error('Error loading commands:', error);
+        logger.error(`Error loading command from ${commandPath}:`, error);
+    }
+}
+
+async function loadCommandsFromDirectory(directory) {
+    const items = await fs.readdir(directory);
+    
+    for (const item of items) {
+        const fullPath = path.join(directory, item);
+        const stat = await fs.stat(fullPath);
+        
+        if (stat.isDirectory()) {
+            await loadCommandsFromDirectory(fullPath);
+        } else if (item.endsWith('.js')) {
+            await loadCommand(fullPath);
+        }
     }
 }
 
 async function initializeCommands() {
-    commands.clear();
-    const commandsPath = path.join(__dirname, '..', 'commands');
-    await loadCommandsFromDirectory(commandsPath);
+    const commandsDir = path.join(__dirname, '../commands');
+    await loadCommandsFromDirectory(commandsDir);
     logger.info(`Loaded ${commands.size} commands`);
 }
 
-async function executeCommand(commandName) {
-    return commands.get(commandName);
-}
+async function handleCommand(sock, msg, args, commandName) {
+    const command = commands.get(commandName);
+    if (!command) return;
 
-function getAllCommands() {
-    return Array.from(commands.values())
-        .filter((cmd, index, self) => 
-            index === self.findIndex(c => c.name === cmd.name)
-        );
+    try {
+        const sender = msg.key.remoteJid;
+        let user = await User.findOne({ jid: sender });
+        
+        if (!user) {
+            user = new User({ jid: sender });
+            await user.save();
+        }
+
+        if (user.isBanned && !command.allowBanned) {
+            await sock.sendMessage(sender, { text: "You are banned from using commands." });
+            return;
+        }
+
+        if (command.ownerOnly && sender !== config.ownerNumber) {
+            await sock.sendMessage(sender, { text: config.messages.permissionError });
+            return;
+        }
+
+        const now = Date.now();
+        const cooldown = command.cooldown || config.commandCooldown;
+        const lastUsed = user.lastCommandUsed ? user.lastCommandUsed.getTime() : 0;
+        
+        if (now - lastUsed < cooldown * 1000) {
+            await sock.sendMessage(sender, { text: config.messages.cooldownError });
+            return;
+        }
+
+        await command.execute(sock, msg, args);
+        user.lastCommandUsed = new Date();
+        await user.save();
+
+    } catch (error) {
+        logger.error(`Error executing command ${commandName}:`, error);
+        await sock.sendMessage(msg.key.remoteJid, { text: config.messages.error });
+    }
 }
 
 module.exports = {
     initializeCommands,
-    executeCommand,
-    getAllCommands
+    handleCommand,
+    commands
 };
