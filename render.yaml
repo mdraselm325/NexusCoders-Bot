@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: nexuscoders-whatsapp-bot
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    nodeVersion: 18.19.0
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 18.19.0
