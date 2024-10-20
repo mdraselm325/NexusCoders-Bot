@@ -11,7 +11,7 @@ module.exports = {
         channel: "https://t.me/your_channel"
     },
     database: {
-        uri: process.env.DB_URI || "mongodb://localhost:27017/nexusbot"
+        uri: process.env.DB_URI || "mongodb+srv://arisonbeckham:arisonbeckham@nexuscoders.yxxbj.mongodb.net/?retryWrites=true&w=majority&appName=NexusCoders"
     },
     cooldowns: {
         default: 3,
