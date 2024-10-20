@@ -1,12 +1,32 @@
 module.exports = {
-    botName: process.env.BOT_NAME || 'NexusCoders',
-    prefix: process.env.PREFIX || '!',
-    ownerNumber: process.env.OWNER_NUMBER || '',
-    mongoUri: process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/',
-    commandCooldown: 3000,
-    maxWarnings: 3,
-    disabledCommands: [],
-    blockedUsers: [],
-    supportedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'audio/mpeg'],
-    maxFileSize: 100 * 1024 * 1024
+    botName: "NexusCoders Bot",
+    version: "1.0.0",
+    prefix: "!",
+    owner: {
+        name: "NexusCoders",
+        number: "your_number@s.whatsapp.net",
+    },
+    support: {
+        group: "https://chat.whatsapp.com/your_group",
+        channel: "https://t.me/your_channel"
+    },
+    database: {
+        uri: process.env.DB_URI || "mongodb://localhost:27017/nexusbot"
+    },
+    cooldowns: {
+        default: 3,
+        commands: {
+            broadcast: 300,
+            ban: 10,
+            unban: 10
+        }
+    },
+    limits: {
+        maxCommandsPerMinute: 20,
+        maxMessagesPerMinute: 60
+    },
+    permissions: {
+        admin: ["admin", "owner"],
+        owner: ["owner"]
+    }
 };
