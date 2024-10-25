@@ -1,5 +1,3 @@
-const User = require('../../models/user');
-
 module.exports = {
     name: 'unban',
     description: 'Unban a user from using the bot',
@@ -7,43 +5,31 @@ module.exports = {
     category: 'admin',
     adminOnly: true,
     async execute(sock, message, args) {
-        const mentions = message.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
+        const User = require('../../models/user');
         
-        if (mentions.length === 0) {
-            await sock.sendMessage(message.key.remoteJid, {
-                text: '❌ Please mention a user to unban'
-            });
+        const mentioned = message.message.extendedTextMessage?.contextInfo?.mentionedJid[0];
+        if (!mentioned) {
+            await sock.sendMessage(message.key.remoteJid, { text: '❌ Please mention a user to unban' });
             return;
         }
 
-        const targetId = mentions[0];
-        const user = await User.findOne({ jid: targetId });
-        
+        const user = await User.findOne({ jid: mentioned });
         if (!user) {
-            await sock.sendMessage(message.key.remoteJid, {
-                text: '❌ User not found in database'
-            });
+            await sock.sendMessage(message.key.remoteJid, { text: '❌ User not found in database' });
             return;
         }
 
         if (!user.isBanned) {
-            await sock.sendMessage(message.key.remoteJid, {
-                text: '❌ User is not banned'
-            });
+            await sock.sendMessage(message.key.remoteJid, { text: '❌ User is not banned' });
             return;
         }
 
-        await user.unban();
-        
-        await sock.sendMessage(message.key.remoteJid, {
-            text: `✅ Unbanned user @${targetId.split('@')[0]}`,
-            mentions: [targetId]
-        });
+        user.isBanned = false;
+        user.banReason = null;
+        await user.save();
 
-        try {
-            await sock.sendMessage(targetId, {
-                text: 'You have been unbanned from using the bot.'
-            });
-        } catch (error) {}
+        await sock.sendMessage(message.key.remoteJid, { 
+            text: `✅ Successfully unbanned ${user.name}` 
+        });
     }
 };
