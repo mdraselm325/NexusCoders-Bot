@@ -4,16 +4,21 @@ const logger = require('./logger');
 
 async function connectToDatabase() {
     try {
-        mongoose.set('strictQuery', true);
+        mongoose.set('strictQuery', false);
         await mongoose.connect(config.database.uri, {
             ...config.database.options,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
+            dbName: 'nexusbot',
+            retryWrites: true,
+            w: 'majority'
         });
         logger.info('Connected to MongoDB');
     } catch (error) {
         logger.error('MongoDB connection error:', error);
-        process.exit(1);
+        if (error.name === 'MongoParseError') {
+            logger.error('Invalid MongoDB connection string');
+            process.exit(1);
+        }
+        setTimeout(connectToDatabase, 5000);
     }
 }
 
@@ -24,6 +29,9 @@ mongoose.connection.on('disconnected', () => {
 
 mongoose.connection.on('error', (err) => {
     logger.error('MongoDB error:', err);
+    if (mongoose.connection.readyState !== 1) {
+        setTimeout(connectToDatabase, 5000);
+    }
 });
 
 process.on('SIGINT', async () => {
