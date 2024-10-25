@@ -18,7 +18,7 @@ module.exports = {
         });
 
         const botImage = {
-            url: 'https://i.ibb.co/your-bot-image-url'
+            url: 'https://tiny.one/32ycxnt3'
         };
 
         if (args.length === 0) {
