@@ -17,7 +17,7 @@ module.exports = {
     },
 
     database: {
-        uri: process.env.MONGODB_URI || "mongodb://localhost:27017/nexusbot",
+        uri: process.env.MONGODB_URI || "mongodb+srv://arisonbeckham:arisonbeckham@nexuscoders.yxxbj.mongodb.net/?retryWrites=true&w=majority&appName=NexusCoders",
         options: {
             useNewUrlParser: true,
             useUnifiedTopology: true
