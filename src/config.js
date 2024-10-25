@@ -4,7 +4,7 @@ module.exports = {
         version: "2.0.0",
         prefix: "!",
         sessionName: "nexus-session",
-        ownerNumber: ["2348180146181@s.whatsapp.net"],//at your phone number with your country code at thw first 
+        ownerNumber: ["2348180146181@s.whatsapp.net"],
         ownerName: "NexusCoders",
         language: "en",
         timezone: "Asia/Kolkata",
@@ -17,10 +17,12 @@ module.exports = {
     },
 
     database: {
-        uri: process.env.MONGODB_URI || "mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/",
+        uri: process.env.MONGODB_URI || "mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/whatsappbot?retryWrites=true&w=majority",
         options: {
             useNewUrlParser: true,
-            useUnifiedTopology: true
+            useUnifiedTopology: true,
+            retryWrites: true,
+            w: "majority"
         }
     },
 
@@ -143,7 +145,7 @@ module.exports = {
 
     paths: {
         commands: "./src/commands",
-        database: "./src/database",
+        database: "./src/utils/database",
         temp: "./temp",
         assets: "./assets",
         logs: "./logs",
@@ -159,4 +161,4 @@ module.exports = {
         restrictedCommands: [],
         maintenanceMode: false
     }
-};
+}
