@@ -25,6 +25,18 @@ module.exports = {
             const sections = [];
             let cmdCount = 0;
 
+            const categoryEmojis = {
+                general: '🔰',
+                admin: '👑',
+                owner: '💎',
+                fun: '🎮',
+                utility: '🛠️',
+                game: '🎲',
+                music: '🎵',
+                economy: '💰',
+                moderation: '🛡️'
+            };
+
             for (const [category, cmds] of Object.entries(categories)) {
                 const rows = cmds.map(cmd => ({
                     title: `${config.prefix}${cmd.name}`,
@@ -34,22 +46,29 @@ module.exports = {
                 cmdCount += cmds.length;
 
                 sections.push({
-                    title: category.toUpperCase(),
+                    title: `${categoryEmojis[category.toLowerCase()] || '📁'} ${category.toUpperCase()}`,
                     rows: rows
                 });
             }
 
             const listMessage = {
                 image: botImage,
-                caption: `🤖 *${config.botName}*\n\n` +
-                        `👋 Hello @${message.key.participant?.split('@')[0] || message.key.remoteJid?.split('@')[0]}!\n\n` +
-                        `📚 Total Commands: ${cmdCount}\n` +
-                        `🔧 Prefix: ${config.prefix}\n` +
-                        `👑 Owner: ${config.bot.ownerName}\n\n` +
-                        `Select a category below to view commands`,
-                footer: `© ${new Date().getFullYear()} ${config.bot.ownerName}`,
+                caption: `╭━━━━━━━━━━━━━━━━╮
+┃    🤖 *${config.botName}* 
+┃━━━━━━━━━━━━━━━━
+┃ 👋 *Welcome,* @${message.key.participant?.split('@')[0] || message.key.remoteJid?.split('@')[0]}!
+┃━━━━━━━━━━━━━━━━
+┃ 📚 Total Commands: ${cmdCount}
+┃ 🔧 Prefix: ${config.prefix}
+┃ 👑 Owner: ${config.bot.ownerName}
+┃ ⌚ Time: ${new Date().toLocaleTimeString()}
+┃━━━━━━━━━━━━━━━━
+┃ Select a category below
+┃ to view available commands
+╰━━━━━━━━━━━━━━━━╯`,
+                footer: `© ${new Date().getFullYear()} ${config.bot.ownerName} | Powered by NexusCoders`,
                 mentions: [message.key.participant || message.key.remoteJid],
-                buttonText: "Command List",
+                buttonText: "📖 Command List",
                 sections,
                 listType: 1
             };
@@ -66,15 +85,16 @@ module.exports = {
                 return;
             }
 
-            const helpText = `📖 *Command Details*\n\n` +
-                           `🔧 *Command:* ${command.name}\n` +
-                           `📝 *Description:* ${command.description}\n` +
-                           `💡 *Usage:* ${command.usage}\n` +
-                           `📁 *Category:* ${command.category}\n` +
-                           (command.aliases ? `🔄 *Aliases:* ${command.aliases.join(', ')}\n` : '') +
-                           (command.cooldown ? `⏰ *Cooldown:* ${command.cooldown}s\n` : '') +
-                           (command.adminOnly ? '👑 *Admin Only:* Yes\n' : '') +
-                           (command.ownerOnly ? '💎 *Owner Only:* Yes\n' : '');
+            const helpText = `╭━━━━━━━━━━━━━━━━╮
+┃    📖 *Command Info* 
+┃━━━━━━━━━━━━━━━━
+┃ 🔧 *Command:* ${command.name}
+┃ 📝 *Description:* 
+┃    ${command.description}
+┃ 💡 *Usage:* 
+┃    ${command.usage}
+┃ 📁 *Category:* ${command.category}
+${command.aliases ? `┃ 🔄 *Aliases:* ${command.aliases.join(', ')}\n` : ''}${command.cooldown ? `┃ ⏰ *Cooldown:* ${command.cooldown}s\n` : ''}${command.adminOnly ? '┃ 👑 *Admin Only:* Yes\n' : ''}${command.ownerOnly ? '┃ 💎 *Owner Only:* Yes\n' : ''}╰━━━━━━━━━━━━━━━━╯`;
 
             await sock.sendMessage(message.key.remoteJid, {
                 image: botImage,
