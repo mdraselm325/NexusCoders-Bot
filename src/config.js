@@ -42,7 +42,7 @@ const config = {
             warningMessage: true
         },
         antiSpam: {
-            enabled: true,
+            enabled: false,
             maxMessages: 7,
             interval: 10000,
             action: "warn"
@@ -58,7 +58,7 @@ const config = {
         },
         presence: {
             autoTyping: true,
-            autoRecord: true,
+            autoRecord: false,
             autoOnline: true
         },
         leveling: {
