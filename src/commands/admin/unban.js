@@ -1,7 +1,7 @@
 module.exports = {
-    name: 'unban',
-    description: 'Unban a user from using the bot',
-    usage: '!unban @user',
+    name: 'ban',
+    description: 'Ban a user from using the bot',
+    usage: '!ban @user [reason]',
     category: 'admin',
     adminOnly: true,
     async execute(sock, message, args) {
@@ -9,7 +9,7 @@ module.exports = {
         
         const mentioned = message.message.extendedTextMessage?.contextInfo?.mentionedJid[0];
         if (!mentioned) {
-            await sock.sendMessage(message.key.remoteJid, { text: '❌ Please mention a user to unban' });
+            await sock.sendMessage(message.key.remoteJid, { text: '❌ Please mention a user to ban' });
             return;
         }
 
@@ -19,17 +19,17 @@ module.exports = {
             return;
         }
 
-        if (!user.isBanned) {
-            await sock.sendMessage(message.key.remoteJid, { text: '❌ User is not banned' });
+        if (user.isAdmin) {
+            await sock.sendMessage(message.key.remoteJid, { text: '❌ Cannot ban an admin' });
             return;
         }
 
-        user.isBanned = false;
-        user.banReason = null;
+        user.isBanned = true;
+        user.banReason = args.slice(1).join(' ') || 'No reason provided';
         await user.save();
 
         await sock.sendMessage(message.key.remoteJid, { 
-            text: `✅ Successfully unbanned ${user.name}` 
+            text: `✅ Successfully banned ${user.name}\nReason: ${user.banReason}` 
         });
     }
 };
