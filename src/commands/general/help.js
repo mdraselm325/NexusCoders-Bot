@@ -4,6 +4,8 @@ module.exports = {
     usage: '!help [command]',
     category: 'general',
     async execute(sock, message, args) {
+
+try {
         const { getCommands } = require('../../handlers/commandHandler');
         const config = require('../../config');
         
@@ -100,6 +102,14 @@ ${command.aliases ? `┃ 🔄 *Aliases:* ${command.aliases.join(', ')}\n` : ''}$
                 image: botImage,
                 caption: helpText
             });
+
+} catch (error) {
+
+await sock.sendMessage(message.key.remoteJid, { text: "Error loading menu\n" + error})
+
+}
+
+
         }
     }
 };
