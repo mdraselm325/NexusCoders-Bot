@@ -2,22 +2,37 @@ module.exports = {
     name: 'ping',
     description: 'Check bot response time',
     usage: '!ping',
-    cooldown: 5,
     category: 'general',
-    
-    async execute(sock, msg) {
+    async execute(sock, message, args) {
         const start = Date.now();
         
-        await sock.sendMessage(msg.key.remoteJid, { text: '📡 Pinging...' });
+        const msg = await sock.sendMessage(message.key.remoteJid, {
+            text: '🏓 Pinging...'
+        });
         
-        const end = Date.now();
-        const responseTime = end - start;
+        const latency = Date.now() - start;
         
-        const pingMessage = `🏓 Pong!\n\n` +
-                          `📊 Response Time: ${responseTime}ms\n` +
-                          `🔌 API Latency: ${Math.round(sock.ws.ping)}ms\n` +
-                          `💾 Uptime: ${Math.floor(process.uptime())}s`;
-        
-        await sock.sendMessage(msg.key.remoteJid, { text: pingMessage });
+        const deviceInfo = {
+            os: process.platform,
+            arch: process.arch,
+            nodeVersion: process.version,
+            uptime: Math.floor(process.uptime()),
+            memory: process.memoryUsage()
+        };
+
+        const memoryUsage = Math.round(deviceInfo.memory.heapUsed / 1024 / 1024);
+        const uptimeHours = Math.floor(deviceInfo.uptime / 3600);
+        const uptimeMinutes = Math.floor((deviceInfo.uptime % 3600) / 60);
+
+        await sock.sendMessage(message.key.remoteJid, {
+            text: `🏓 Pong!\n\n` +
+                  `📊 *Status Info*\n` +
+                  `▢ Latency: ${latency}ms\n` +
+                  `▢ Uptime: ${uptimeHours}h ${uptimeMinutes}m\n` +
+                  `▢ Memory: ${memoryUsage}MB\n` +
+                  `▢ OS: ${deviceInfo.os}\n` +
+                  `▢ Node: ${deviceInfo.nodeVersion}`,
+            edit: msg.key
+        });
     }
 };
