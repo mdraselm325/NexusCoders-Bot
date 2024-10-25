@@ -30,9 +30,11 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    lastDaily: {
-        type: Date
+    isPremium: {
+        type: Boolean,
+        default: false
     },
+    lastDaily: Date,
     balance: {
         type: Number,
         default: 0
@@ -53,9 +55,6 @@ const userSchema = new mongoose.Schema({
         language: {
             type: String,
             default: 'en'
-        },
-        prefix: {
-            type: String
         }
     },
     statistics: {
@@ -72,14 +71,12 @@ const userSchema = new mongoose.Schema({
             default: 0
         }
     },
+    lastCommandTime: Date,
     createdAt: {
         type: Date,
         default: Date.now
     },
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    }
+    updatedAt: Date
 });
 
 userSchema.pre('save', function(next) {
@@ -89,24 +86,25 @@ userSchema.pre('save', function(next) {
 
 userSchema.methods.addExperience = async function(amount) {
     this.experience += amount;
-    const levelUp = this.checkLevelUp();
+    const nextLevel = Math.floor(0.1 * Math.sqrt(this.experience));
+    const didLevelUp = nextLevel > this.level;
+    if (didLevelUp) {
+        this.level = nextLevel;
+    }
     await this.save();
-    return levelUp;
+    return didLevelUp;
 };
 
-userSchema.methods.checkLevelUp = function() {
-    const nextLevel = Math.floor(0.1 * Math.sqrt(this.experience));
-    if (nextLevel > this.level) {
-        this.level = nextLevel;
-        return true;
-    }
-    return false;
+userSchema.methods.addBalance = async function(amount) {
+    this.balance += amount;
+    await this.save();
+    return this.balance;
 };
 
 userSchema.methods.warn = async function() {
     this.warns += 1;
     await this.save();
-    return this.warns >= config.maxWarns;
+    return this.warns;
 };
 
 userSchema.methods.clearWarns = async function() {
@@ -121,6 +119,11 @@ userSchema.methods.ban = async function() {
 
 userSchema.methods.unban = async function() {
     this.isBanned = false;
+    await this.save();
+};
+
+userSchema.methods.setPremium = async function(status) {
+    this.isPremium = status;
     await this.save();
 };
 
