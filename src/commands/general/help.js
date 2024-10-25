@@ -1,52 +1,65 @@
+const { getCommands } = require('../../handlers/commandHandler');
 const config = require('../../config');
-const { commands } = require('../../handlers/commandHandler');
 
 module.exports = {
     name: 'help',
-    description: 'Shows list of available commands',
+    description: 'Display all available commands',
     usage: '!help [command]',
-    cooldown: 5,
     category: 'general',
-    async execute(sock, msg, args) {
-        const sender = msg.key.remoteJid;
+    async execute(sock, message, args) {
+        const commands = getCommands();
+        const categories = {};
         
-        if (args.length > 0) {
-            const commandName = args[0].toLowerCase();
-            const command = commands.get(commandName);
+        commands.forEach(cmd => {
+            if (!categories[cmd.category]) {
+                categories[cmd.category] = [];
+            }
+            categories[cmd.category].push(cmd);
+        });
+
+        const helpImage = {
+            url: 'https://example.com/bot-banner.jpg'
+        };
+
+        if (args.length === 0) {
+            let helpText = `🤖 *${config.botName} Commands*\n\n`;
             
-            if (command) {
-                const helpText = `*Command: ${command.name}*\n` +
-                               `Description: ${command.description}\n` +
-                               `Usage: ${command.usage}\n` +
-                               `Cooldown: ${command.cooldown || config.commandCooldown}s\n` +
-                               `Category: ${command.category}`;
-                               
-                await sock.sendMessage(sender, { text: helpText });
+            for (const [category, cmds] of Object.entries(categories)) {
+                helpText += `*${category.toUpperCase()}*\n`;
+                cmds.forEach(cmd => {
+                    helpText += `➤ ${config.prefix}${cmd.name}: ${cmd.description}\n`;
+                });
+                helpText += '\n';
+            }
+            
+            helpText += `\nType ${config.prefix}help <command> for detailed info about a command.`;
+
+            await sock.sendMessage(message.key.remoteJid, {
+                image: helpImage,
+                caption: helpText
+            });
+        } else {
+            const commandName = args[0].toLowerCase();
+            const command = commands.find(cmd => cmd.name === commandName);
+            
+            if (!command) {
+                await sock.sendMessage(message.key.remoteJid, {
+                    text: `❌ Command "${commandName}" not found.`
+                });
                 return;
             }
-        }
-        
-        const categories = new Map();
-        
-        for (const [, command] of commands) {
-            if (!categories.has(command.category)) {
-                categories.set(command.category, []);
-            }
-            categories.get(command.category).push(command.name);
-        }
-        
-        let helpText = `*${config.botName} - Command List*\n\n`;
-        
-        for (const [category, commandList] of categories) {
-            helpText += `📑 *${category.toUpperCase()}*\n`;
-            commandList.forEach(cmd => {
-                helpText += `▢ ${config.prefix}${cmd}\n`;
+
+            const helpText = `*Command: ${command.name}*\n\n` +
+                           `Description: ${command.description}\n` +
+                           `Usage: ${command.usage}\n` +
+                           `Category: ${command.category}\n` +
+                           (command.aliases ? `Aliases: ${command.aliases.join(', ')}\n` : '') +
+                           (command.cooldown ? `Cooldown: ${command.cooldown}s\n` : '');
+
+            await sock.sendMessage(message.key.remoteJid, {
+                image: helpImage,
+                caption: helpText
             });
-            helpText += '\n';
         }
-        
-        helpText += `\nUse ${config.prefix}help <command> for detailed info about a command.`;
-        
-        await sock.sendMessage(sender, { text: helpText });
     }
 };
