@@ -1,131 +1,100 @@
-const { isCommand, parseCommand, isGroupMsg, getMessageText, isOwner } = require('../utils/messages');
-const { executeCommand } = require('./commandHandler');
-const User = require('../models/user');
+const fs = require('fs-extra');
+const path = require('path');
 const config = require('../config');
+const { isGroupMsg, isGroupAdmin, isOwner } = require('../utils/messages');
+const logger = require('../utils/logger');
 
-const cooldowns = new Map();
-const spamMap = new Map();
+const commands = new Map();
 
-const handleAntiSpam = async (sock, message, userId) => {
-    if (!config.features.antiSpam.enabled) return false;
-    
-    const now = Date.now();
-    const userData = spamMap.get(userId) || { count: 0, firstMsg: now };
-    
-    if (now - userData.firstMsg > config.features.antiSpam.interval) {
-        userData.count = 0;
-        userData.firstMsg = now;
+const loadCommands = async (directory) => {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+
+    for (const entry of entries) {
+        const fullPath = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+            await loadCommands(fullPath);
+            continue;
+        }
+
+        if (!entry.name.endsWith('.js')) continue;
+
+        try {
+            const command = require(fullPath);
+            if (command.name && command.execute) {
+                commands.set(command.name, command);
+                if (command.aliases) {
+                    command.aliases.forEach(alias => commands.set(alias, command));
+                }
+            }
+        } catch (error) {
+            logger.error(`Failed to load ${entry.name}:`, error);
+        }
+    }
+};
+
+const initializeCommands = async () => {
+    const commandsDir = path.join(__dirname, '..', 'commands');
+    await loadCommands(commandsDir);
+    logger.info(`Loaded ${commands.size} commands`);
+};
+
+const executeCommand = async (sock, message, commandName, args, user) => {
+    const cmd = commands.get(commandName);
+    if (!cmd) return false;
+
+    const jid = message.key.remoteJid;
+    const isGroup = isGroupMsg(message);
+
+    if (cmd.ownerOnly && !isOwner(user.jid)) {
+        await sock.sendMessage(jid, { text: config.messages.commands.ownerOnly });
+        return false;
     }
 
-    userData.count++;
-    spamMap.set(userId, userData);
+    if (cmd.premiumOnly && !user.isPremium && !isOwner(user.jid)) {
+        await sock.sendMessage(jid, { text: config.messages.commands.premiumOnly });
+        return false;
+    }
 
-    if (userData.count > config.features.antiSpam.maxMessages) {
-        await sock.sendMessage(message.key.remoteJid, { 
-            text: config.features.autoResponse.messages.spam 
+    if (cmd.groupOnly && !isGroup) {
+        await sock.sendMessage(jid, { text: config.messages.commands.groupOnly });
+        return false;
+    }
+
+    if (cmd.privateOnly && isGroup) {
+        await sock.sendMessage(jid, { text: config.messages.commands.privateOnly });
+        return false;
+    }
+
+    if (cmd.adminOnly && !await isGroupAdmin(sock, jid, user.jid)) {
+        await sock.sendMessage(jid, { text: config.messages.commands.adminOnly });
+        return false;
+    }
+
+    if (cmd.minArgs && args.length < cmd.minArgs) {
+        const usage = cmd.usage ? `\nUsage: ${config.bot.prefix}${cmd.name} ${cmd.usage}` : '';
+        await sock.sendMessage(jid, { 
+            text: `${config.messages.errors.notEnoughArgs}${usage}`
         });
-        return true;
-    }
-    return false;
-};
-
-const handlePresence = async (sock, message) => {
-    if (!message.key.remoteJid) return;
-
-    if (config.features.presence.autoTyping) {
-        await sock.sendPresenceUpdate('composing', message.key.remoteJid);
+        return false;
     }
 
-    if (config.features.presence.autoRead) {
-        await sock.readMessages([message.key]);
-    }
-
-    if (config.features.presence.autoOnline) {
-        await sock.sendPresenceUpdate('available', message.key.remoteJid);
-    }
-};
-
-const handleUser = async (message) => {
-    const userId = message.key.participant || message.key.remoteJid;
-    let user = await User.findOne({ jid: userId });
-
-    if (!user) {
-        user = new User({
-            jid: userId,
-            name: message.pushName || "User",
-            isAdmin: config.bot.ownerNumber.includes(userId)
-        });
-    }
-
-    user.statistics.messagesReceived++;
-    await user.save();
-    return user;
-};
-
-const messageHandler = async (sock, message) => {
     try {
-        if (!message.message) return;
-
-        const user = await handleUser(message);
-        if (user.isBanned && !isOwner(user.jid)) return;
-
-        const jid = message.key.remoteJid;
-        const userId = message.key.participant || message.key.remoteJid;
-        const messageText = getMessageText(message);
-
-        await handlePresence(sock, message);
-        
-        if (await handleAntiSpam(sock, message, userId)) return;
-
-        if (isCommand(messageText)) {
-            const { command, args } = parseCommand(messageText);
-            
-            const cmdCooldown = cooldowns.get(`${userId}-${command}`) || 0;
-            if (Date.now() < cmdCooldown) {
-                const timeLeft = Math.ceil((cmdCooldown - Date.now()) / 1000);
-                await sock.sendMessage(jid, {
-                    text: `Please wait ${timeLeft} seconds before using this command again.`
-                });
-                return;
-            }
-
-            if (config.security.bannedCommands.includes(command)) {
-                await sock.sendMessage(jid, {
-                    text: config.messages.commands.disabled
-                });
-                return;
-            }
-
-            if (config.security.maintenanceMode && !isOwner(userId)) {
-                await sock.sendMessage(jid, {
-                    text: config.messages.commands.maintenance
-                });
-                return;
-            }
-
-            const result = await executeCommand(sock, message, command, args, user);
-            if (result) {
-                user.statistics.commandsUsed++;
-                await user.save();
-
-                cooldowns.set(`${userId}-${command}`, Date.now() + config.limits.cooldown);
-            }
-        }
-
-        if (config.features.leveling.enabled) {
-            const expGained = config.features.leveling.messageXP;
-            const levelUp = await user.addExperience(expGained);
-
-            if (levelUp) {
-                await sock.sendMessage(jid, {
-                    text: `🎉 Congratulations ${user.name}! You've reached level ${user.level}!`
-                });
-            }
-        }
-
+        await cmd.execute(sock, message, args, user);
+        return true;
     } catch (error) {
-        console.error('Message handling error:', error);
+        logger.error(`Command execution error (${commandName}):`, error);
+        await sock.sendMessage(jid, { 
+            text: config.messages.commands.error 
+        });
+        return false;
     }
 };
 
-module.exports = messageHandler;
+const getCommands = () => Array.from(commands.values());
+
+module.exports = {
+    initializeCommands,
+    executeCommand,
+    getCommands
+};
