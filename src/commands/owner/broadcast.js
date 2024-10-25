@@ -1,5 +1,3 @@
-const User = require('../../models/user');
-
 module.exports = {
     name: 'broadcast',
     description: 'Broadcast a message to all users',
@@ -7,10 +5,10 @@ module.exports = {
     category: 'owner',
     ownerOnly: true,
     async execute(sock, message, args) {
-        if (args.length === 0) {
-            await sock.sendMessage(message.key.remoteJid, {
-                text: '❌ Please provide a message to broadcast'
-            });
+        const User = require('../../models/user');
+        
+        if (args.length < 1) {
+            await sock.sendMessage(message.key.remoteJid, { text: '❌ Please provide a message to broadcast' });
             return;
         }
 
@@ -19,24 +17,14 @@ module.exports = {
         let successCount = 0;
         let failCount = 0;
 
-        const progress = await sock.sendMessage(message.key.remoteJid, {
-            text: '📢 Broadcasting message...'
-        });
+        await sock.sendMessage(message.key.remoteJid, { text: '📢 Starting broadcast...' });
 
         for (const user of users) {
             try {
                 await sock.sendMessage(user.jid, {
-                    text: `📢 *NexusCoders Bot Broadcast*\n\n${broadcastMessage}`
+                    text: `*🔊 BROADCAST MESSAGE*\n\n${broadcastMessage}`
                 });
                 successCount++;
-                
-                if (successCount % 10 === 0) {
-                    await sock.sendMessage(message.key.remoteJid, {
-                        text: `📢 Progress: ${successCount}/${users.length}`,
-                        edit: progress.key
-                    });
-                }
-                
                 await new Promise(resolve => setTimeout(resolve, 1000));
             } catch (error) {
                 failCount++;
@@ -44,8 +32,7 @@ module.exports = {
         }
 
         await sock.sendMessage(message.key.remoteJid, {
-            text: `📢 Broadcast completed!\n✅ Success: ${successCount}\n❌ Failed: ${failCount}`,
-            edit: progress.key
+            text: `📊 Broadcast completed\n\n✅ Success: ${successCount}\n❌ Failed: ${failCount}`
         });
     }
 };
