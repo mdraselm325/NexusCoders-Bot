@@ -1,4 +1,16 @@
-module.exports = {
+const config = {
+    botName: "NexusCoders Bot",
+    ownerNumber: "2348180146181@s.whatsapp.net",
+    database: {
+        uri: "mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/nexusbot?retryWrites=true&w=majority",
+        options: {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            connectTimeoutMS: 10000,
+            socketTimeoutMS: 45000,
+            family: 4
+        }
+    },
     bot: {
         name: "NexusCoders Bot",
         version: "2.0.0",
@@ -15,17 +27,6 @@ module.exports = {
         supportGroups: ["SUPPORT_GROUP_ID@g.us"],
         logLevel: "silent"
     },
-
-    database: {
-        uri: process.env.MONGODB_URI || "mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/whatsappbot?retryWrites=true&w=majority",
-        options: {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            retryWrites: true,
-            w: "majority"
-        }
-    },
-
     limits: {
         maxWarn: 3,
         rateLimit: 2,
@@ -33,7 +34,6 @@ module.exports = {
         maxCommandsPerMinute: 10,
         maxMessagesPerMinute: 15
     },
-
     features: {
         antiLink: {
             enabled: true,
@@ -73,7 +73,6 @@ module.exports = {
             maxLevel: 100
         }
     },
-
     appearance: {
         colors: {
             primary: "#2196f3",
@@ -97,7 +96,6 @@ module.exports = {
             fire: "🔥"
         }
     },
-
     group: {
         minMembers: 3,
         maxMembers: 257,
@@ -108,7 +106,6 @@ module.exports = {
             maintenanceMode: false
         }
     },
-
     messages: {
         commands: {
             notFound: "Command not found. Type !help for command list.",
@@ -133,7 +130,6 @@ module.exports = {
             groupNotFound: "Group not found."
         }
     },
-
     apis: {
         removeBg: process.env.REMOVE_BG_KEY || "",
         openai: process.env.OPENAI_API_KEY || "",
@@ -142,7 +138,6 @@ module.exports = {
         rapidApi: process.env.RAPID_API_KEY || "",
         weatherApi: process.env.WEATHER_API_KEY || ""
     },
-
     paths: {
         commands: "./src/commands",
         database: "./src/database",
@@ -151,7 +146,6 @@ module.exports = {
         logs: "./logs",
         sessions: "./sessions"
     },
-
     security: {
         maxWarns: 3,
         antiSpamIgnore: ["120363025246779146@g.us"],
@@ -161,4 +155,6 @@ module.exports = {
         restrictedCommands: [],
         maintenanceMode: false
     }
-}
+};
+
+module.exports = config;
