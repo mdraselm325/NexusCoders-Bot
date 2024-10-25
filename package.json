@@ -51,7 +51,13 @@
     "wa-sticker-formatter": "^4.4.4",
     "web-streams-polyfill": "^3.2.1",
     "winston": "^3.11.0",
-    "winston-daily-rotate-file": "^4.7.1"
+    "winston-daily-rotate-file": "^4.7.1",
+    "@whiskeysockets/baileys-md": "^5.0.0",
+    "path": "^0.12.7",
+    "baileys": "^6.0.9",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.6",
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^2.1.4",
