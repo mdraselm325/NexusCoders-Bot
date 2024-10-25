@@ -1,94 +1,68 @@
 const fs = require('fs-extra');
 const path = require('path');
-const logger = require('../utils/logger');
 const config = require('../config');
-const User = require('../models/user');
+const logger = require('../utils/logger');
 
-const commands = new Map();
+let commands = new Map();
 
-async function loadCommand(commandPath) {
-    try {
-        const command = require(commandPath);
-        if (command.name) {
-            commands.set(command.name, command);
-            logger.info(`Loaded command: ${command.name}`);
-            if (command.aliases) {
-                command.aliases.forEach(alias => commands.set(alias, command));
-            }
-        }
-    } catch (error) {
-        logger.error(`Error loading command from ${commandPath}:`, error);
-    }
-}
-
-async function loadCommandsFromDirectory(directory) {
-    const items = await fs.readdir(directory);
+const loadCommands = async (directory) => {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
     
-    for (const item of items) {
-        const fullPath = path.join(directory, item);
-        const stat = await fs.stat(fullPath);
+    for (const entry of entries) {
+        const fullPath = path.join(directory, entry.name);
         
-        if (stat.isDirectory()) {
-            await loadCommandsFromDirectory(fullPath);
-        } else if (item.endsWith('.js')) {
-            await loadCommand(fullPath);
+        if (entry.isDirectory()) {
+            await loadCommands(fullPath);
+            continue;
+        }
+        
+        if (!entry.name.endsWith('.js')) continue;
+        
+        try {
+            const command = require(fullPath);
+            if (command.name && command.execute) {
+                commands.set(command.name, command);
+            }
+        } catch (error) {
+            logger.error(`Failed to load command ${entry.name}:`, error);
         }
     }
-}
+};
 
-async function initializeCommands() {
-    commands.clear();
-    const commandsDir = path.join(__dirname, '../commands');
-    await loadCommandsFromDirectory(commandsDir);
+const initializeCommands = async () => {
+    const commandsDir = path.join(__dirname, '..', 'commands');
+    await loadCommands(commandsDir);
     logger.info(`Loaded ${commands.size} commands`);
-    return commands;
-}
+};
 
-async function handleCommand(sock, msg, args, commandName) {
-    const command = commands.get(commandName);
-    if (!command) return;
+const executeCommand = async (sock, message, command, args) => {
+    const cmd = commands.get(command);
+    if (!cmd) return;
+
+    if (cmd.ownerOnly && !message.key.fromMe) {
+        await sock.sendMessage(message.key.remoteJid, { text: "This command is only for bot owner!" });
+        return;
+    }
+
+    if (cmd.adminOnly && !await isGroupAdmin(sock, message.key.remoteJid, message.key.participant)) {
+        await sock.sendMessage(message.key.remoteJid, { text: "This command is only for group admins!" });
+        return;
+    }
 
     try {
-        const sender = msg.key.remoteJid;
-        let user = await User.findOne({ jid: sender });
-        
-        if (!user) {
-            user = new User({ jid: sender });
-            await user.save();
-        }
-
-        if (user.isBanned && !command.allowBanned) {
-            await sock.sendMessage(sender, { text: "You are banned from using commands." });
-            return;
-        }
-
-        if (command.ownerOnly && sender !== config.ownerNumber) {
-            await sock.sendMessage(sender, { text: "This command is only for the owner." });
-            return;
-        }
-
-        const now = Date.now();
-        const cooldown = command.cooldown || 3;
-        const lastUsed = user.lastCommandUsed ? user.lastCommandUsed.getTime() : 0;
-        
-        if (now - lastUsed < cooldown * 1000) {
-            const remaining = ((cooldown * 1000) - (now - lastUsed)) / 1000;
-            await sock.sendMessage(sender, { text: `Please wait ${remaining.toFixed(1)} seconds before using this command again.` });
-            return;
-        }
-
-        await command.execute(sock, msg, args);
-        user.lastCommandUsed = new Date();
-        await user.save();
-
+        await cmd.execute(sock, message, args);
     } catch (error) {
-        logger.error(`Error executing command ${commandName}:`, error);
-        await sock.sendMessage(msg.key.remoteJid, { text: "An error occurred while executing this command." });
+        logger.error(`Command execution error (${command}):`, error);
+        await sock.sendMessage(message.key.remoteJid, { text: "An error occurred while executing the command." });
     }
-}
+};
+
+const getCommands = () => {
+    return Array.from(commands.values());
+};
 
 module.exports = {
     initializeCommands,
-    handleCommand,
-    commands
+    executeCommand,
+    getCommands
 };
