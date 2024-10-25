@@ -145,7 +145,7 @@ module.exports = {
 
     paths: {
         commands: "./src/commands",
-        database: "./src/utils/database",
+        database: "./src/database",
         temp: "./temp",
         assets: "./assets",
         logs: "./logs",
