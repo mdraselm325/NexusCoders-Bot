@@ -1,6 +1,6 @@
 const config = {
     botName: "NexusCoders Bot",
-    ownerNumber: "2348180146181@s.whatsapp.net",
+    ownerNumber: "2347075663318@s.whatsapp.net",
     database: {
         uri: "mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/nexusbot?retryWrites=true&w=majority",
         options: {
@@ -16,7 +16,7 @@ const config = {
         version: "2.0.0",
         prefix: "!",
         sessionName: "nexus-session",
-        ownerNumber: ["2348180146181@s.whatsapp.net"],
+        ownerNumber: ["2347075663318@s.whatsapp.net"],
         ownerName: "NexusCoders",
         language: "en",
         timezone: "Asia/Kolkata",
