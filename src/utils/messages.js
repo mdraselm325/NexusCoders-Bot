@@ -15,14 +15,11 @@ const extractMessageContent = (message) => {
     return null;
 };
 
-const getMessageType = (message) => {
-    const { mtype } = message;
-    if (mtype === 'imageMessage') return 'image';
-    if (mtype === 'videoMessage') return 'video';
-    if (mtype === 'audioMessage') return 'audio';
-    if (mtype === 'stickerMessage') return 'sticker';
-    if (mtype === 'documentMessage') return 'document';
-    return 'text';
+const getMessageText = (message) => {
+    const msg = message.message;
+    if (!msg) return '';
+    return msg.conversation || msg.extendedTextMessage?.text || 
+           msg.imageMessage?.caption || msg.videoMessage?.caption || '';
 };
 
 const downloadMedia = async (message) => {
@@ -41,13 +38,13 @@ const parseMessageArgs = (text) => {
 
 const isCommand = (text) => {
     if (!text) return false;
-    return text.startsWith(config.prefix);
+    return text.startsWith(config.bot.prefix);
 };
 
 const parseCommand = (text) => {
-    if (!isCommand(text)) return null;
-    const args = text.slice(config.prefix.length).trim().split(' ');
-    const command = args.shift().toLowerCase();
+    if (!isCommand(text)) return { command: '', args: [] };
+    const args = text.slice(config.bot.prefix.length).trim().split(' ');
+    const command = args.shift()?.toLowerCase();
     return { command, args };
 };
 
@@ -67,13 +64,20 @@ const getQuotedMessage = async (message) => {
 };
 
 const isMediaMessage = (message) => {
-    const type = getMessageType(message);
-    return ['image', 'video', 'audio', 'sticker', 'document'].includes(type);
+    const msg = message.message;
+    return !!(msg?.imageMessage || msg?.videoMessage || msg?.audioMessage || 
+              msg?.stickerMessage || msg?.documentMessage);
 };
 
 const getGroupAdmins = async (sock, groupId) => {
-    const participants = await sock.groupMetadata(groupId);
-    return participants.filter(p => p.admin).map(p => p.id);
+    try {
+        const metadata = await sock.groupMetadata(groupId);
+        return metadata.participants
+            .filter(p => p.admin)
+            .map(p => p.id);
+    } catch {
+        return [];
+    }
 };
 
 const isGroupAdmin = async (sock, groupId, userId) => {
@@ -81,9 +85,13 @@ const isGroupAdmin = async (sock, groupId, userId) => {
     return admins.includes(userId);
 };
 
+const isOwner = (userId) => {
+    return config.bot.ownerNumber.includes(userId);
+};
+
 module.exports = {
     extractMessageContent,
-    getMessageType,
+    getMessageText,
     downloadMedia,
     parseMessageArgs,
     isCommand,
@@ -93,5 +101,6 @@ module.exports = {
     getQuotedMessage,
     isMediaMessage,
     getGroupAdmins,
-    isGroupAdmin
+    isGroupAdmin,
+    isOwner
 };
