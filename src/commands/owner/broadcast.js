@@ -1,45 +1,51 @@
-const config = require('../../config');
+const User = require('../../models/user');
 
 module.exports = {
     name: 'broadcast',
-    description: 'Broadcast a message to all chats',
+    description: 'Broadcast a message to all users',
     usage: '!broadcast <message>',
     category: 'owner',
     ownerOnly: true,
-    
-    async execute(sock, msg, args) {
-        if (args.length < 1) {
-            await sock.sendMessage(msg.key.remoteJid, { text: '❌ Please provide a message to broadcast!' });
+    async execute(sock, message, args) {
+        if (args.length === 0) {
+            await sock.sendMessage(message.key.remoteJid, {
+                text: '❌ Please provide a message to broadcast'
+            });
             return;
         }
 
-        const message = args.join(' ');
-        const broadcastMessage = `*[BROADCAST MESSAGE]*\n\n${message}\n\n_This is a broadcast message from the bot owner._`;
+        const broadcastMessage = args.join(' ');
+        const users = await User.find({});
+        let successCount = 0;
+        let failCount = 0;
 
-        try {
-            const chats = await sock.groupFetchAllParticipating();
-            let successCount = 0;
-            let failCount = 0;
+        const progress = await sock.sendMessage(message.key.remoteJid, {
+            text: '📢 Broadcasting message...'
+        });
 
-            for (const [jid] of Object.entries(chats)) {
-                try {
-                    await sock.sendMessage(jid, { text: broadcastMessage });
-                    successCount++;
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                } catch {
-                    failCount++;
+        for (const user of users) {
+            try {
+                await sock.sendMessage(user.jid, {
+                    text: `📢 *NexusCoders Bot Broadcast*\n\n${broadcastMessage}`
+                });
+                successCount++;
+                
+                if (successCount % 10 === 0) {
+                    await sock.sendMessage(message.key.remoteJid, {
+                        text: `📢 Progress: ${successCount}/${users.length}`,
+                        edit: progress.key
+                    });
                 }
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (error) {
+                failCount++;
             }
-
-            const summary = `📢 Broadcast Summary\n\n` +
-                          `✅ Successfully sent: ${successCount}\n` +
-                          `❌ Failed: ${failCount}\n` +
-                          `📝 Message: ${message.substring(0, 50)}...`;
-
-            await sock.sendMessage(msg.key.remoteJid, { text: summary });
-
-        } catch (error) {
-            await sock.sendMessage(msg.key.remoteJid, { text: config.messages.error });
         }
+
+        await sock.sendMessage(message.key.remoteJid, {
+            text: `📢 Broadcast completed!\n✅ Success: ${successCount}\n❌ Failed: ${failCount}`,
+            edit: progress.key
+        });
     }
 };
