@@ -60,7 +60,7 @@ module.exports = {
 ┃ 👋 *Welcome,* @${message.key.participant?.split('@')[0] || message.key.remoteJid?.split('@')[0]}!
 ┃━━━━━━━━━━━━━━━━
 ┃ 📚 Total Commands: ${cmdCount}
-┃ 🔧 Prefix: ${config.prefix}
+┃ 🔧 Prefix: ${config.bot.prefix}
 ┃ 👑 Owner: ${config.bot.ownerName}
 ┃ ⌚ Time: ${new Date().toLocaleTimeString()}
 ┃━━━━━━━━━━━━━━━━
