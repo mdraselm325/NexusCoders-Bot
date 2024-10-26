@@ -8,7 +8,7 @@
 [<img src="https://img.shields.io/badge/DEPLOY-RENDER-blue.svg?style=for-the-badge&logo=render" width="200" height="35.45"/>](https://render.com)
 [<img src="https://img.shields.io/badge/DEPLOY-KOYEB-black.svg?style=for-the-badge&logo=koyeb" width="200" height="35.45"/>](https://koyeb.com)
 
-[Demo • Support • Discussion](https://chat.whatsapp.com/your-group-link)
+[Demo • Support • Discussion](https://whatsapp.com/channel/0029VarItlZ8fewz4nyakm1u)
 
 <img src="https://tiny.one/y6a7bdpk" alt="NexusCoders Bot Banner" width="800"/>
 
