@@ -1,5 +1,24 @@
 const logger = require('../utils/logger');
 const config = require('../config');
+const { executeCommand } = require('./commandHandler');
+
+async function handleMessage(sock, message) {
+    try {
+        if (!message.message) return;
+
+        const messageText = message.message?.conversation || 
+                          message.message?.extendedTextMessage?.text || 
+                          message.message?.imageMessage?.caption ||
+                          message.message?.videoMessage?.caption;
+
+        if (!messageText?.startsWith(config.prefix)) return;
+
+        const [command, ...args] = messageText.slice(config.prefix.length).trim().split(' ');
+        await executeCommand(sock, message, command.toLowerCase(), args);
+    } catch (error) {
+        logger.error('Error in message handler:', error);
+    }
+}
 
 async function handleGroupParticipantsUpdate(sock, update) {
     const { id, participants, action } = update;
@@ -61,6 +80,7 @@ async function handleGroupUpdate(sock, update) {
 }
 
 module.exports = {
+    handleMessage,
     handleGroupParticipantsUpdate,
     handleGroupUpdate
 };
