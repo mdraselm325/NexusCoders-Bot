@@ -123,12 +123,22 @@ async function connectToWhatsApp() {
                 for (const msg of messages) {
                     if (!msg.key.fromMe) {
                         try {
-                            await messageHandler(sock, msg);
+                            await messageHandler.handleMessage(sock, msg);
                         } catch (error) {
                             logger.error('Message handling failed:', error);
                         }
                     }
                 }
+            }
+        });
+
+        sock.ev.on('group-participants.update', (update) => {
+            messageHandler.handleGroupParticipantsUpdate(sock, update);
+        });
+
+        sock.ev.on('groups.update', (updates) => {
+            for (const update of updates) {
+                messageHandler.handleGroupUpdate(sock, update);
             }
         });
 
