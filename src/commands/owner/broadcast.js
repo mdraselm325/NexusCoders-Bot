@@ -1,38 +1,19 @@
 module.exports = {
     name: 'broadcast',
-    description: 'Broadcast a message to all users',
+    description: 'Broadcast a message to all groups',
     usage: '!broadcast <message>',
     category: 'owner',
     ownerOnly: true,
     async execute(sock, message, args) {
-        const User = require('../../models/user');
+        if (!args.length) return await sock.sendMessage(message.key.remoteJid, { text: 'Please provide a message to broadcast' });
         
-        if (args.length < 1) {
-            await sock.sendMessage(message.key.remoteJid, { text: '❌ Please provide a message to broadcast' });
-            return;
-        }
-
         const broadcastMessage = args.join(' ');
-        const users = await User.find({});
-        let successCount = 0;
-        let failCount = 0;
-
-        await sock.sendMessage(message.key.remoteJid, { text: '📢 Starting broadcast...' });
-
-        for (const user of users) {
-            try {
-                await sock.sendMessage(user.jid, {
-                    text: `*🔊 BROADCAST MESSAGE*\n\n${broadcastMessage}`
-                });
-                successCount++;
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            } catch (error) {
-                failCount++;
-            }
+        const groups = await sock.groupFetchAllParticipating();
+        
+        for (let group of Object.values(groups)) {
+            await sock.sendMessage(group.id, { text: broadcastMessage });
         }
-
-        await sock.sendMessage(message.key.remoteJid, {
-            text: `📊 Broadcast completed\n\n✅ Success: ${successCount}\n❌ Failed: ${failCount}`
-        });
+        
+        await sock.sendMessage(message.key.remoteJid, { text: 'Broadcast sent successfully!' });
     }
 };
