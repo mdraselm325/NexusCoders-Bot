@@ -24,7 +24,7 @@ module.exports = {
         try {
             const prompt = args.join(' ');
             const encodedPrompt = encodeURIComponent(prompt);
-            const response = await axios.get(`https://apitoxxictechinc.vercel.app/api/chat?text=${encodedPrompt}&apikey=nexusteam`);
+            const response = await axios.get(`https://sandipbaruwal.onrender.com/gemini?prompt=${encodedPrompt}`);
 
             if (response.data && response.data.answer) {
                 const aiResponse = `🤖 *AI Response:*\n\n${response.data.answer}`;
