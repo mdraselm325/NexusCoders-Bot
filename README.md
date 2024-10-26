@@ -10,7 +10,7 @@
 
 [Demo • Support • Discussion](https://chat.whatsapp.com/your-group-link)
 
-<img src="https://your-bot-banner-image-url.png" alt="NexusCoders Bot Banner" width="800"/>
+<img src="https://tiny.one/y6a7bdpk" alt="NexusCoders Bot Banner" width="800"/>
 
 </div>
 
@@ -163,7 +163,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 💬 Support
 
 Join our WhatsApp group for support and updates:
-[Join Support Group](https://chat.whatsapp.com/your-group-link)
+[Join Support Group](https://chat.whatsapp.com/GND0jkJc2eaEmvwwwvTEZ2)
 
 ---
 
