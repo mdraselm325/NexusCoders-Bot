@@ -136,7 +136,7 @@ const config = {
         googleCloud: process.env.GOOGLE_CLOUD_API_KEY || "",
         deepai: process.env.DEEPAI_API_KEY || "",
         rapidApi: process.env.RAPID_API_KEY || "",
-        weatherApi: process.env.WEATHER_API_KEY || ""
+        weatherApi: process.env.WEATHER_API_KEY || "a9b4c37c68380d91903251d40ffa89ec"
     },
     paths: {
         commands: "./src/commands",
