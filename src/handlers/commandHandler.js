@@ -21,6 +21,7 @@ const loadCommands = async (directory) => {
         try {
             const command = require(fullPath);
             if (command.name && command.execute) {
+                command.category = path.basename(path.dirname(fullPath));
                 commands.set(command.name, command);
             }
         } catch (error) {
@@ -33,6 +34,18 @@ const initializeCommands = async () => {
     const commandsDir = path.join(__dirname, '..', 'commands');
     await loadCommands(commandsDir);
     logger.info(`Loaded ${commands.size} commands`);
+};
+
+const isGroupAdmin = async (sock, groupId, participant) => {
+    try {
+        const groupMetadata = await sock.groupMetadata(groupId);
+        const groupAdmins = groupMetadata.participants
+            .filter(p => p.admin)
+            .map(p => p.id);
+        return groupAdmins.includes(participant);
+    } catch {
+        return false;
+    }
 };
 
 const executeCommand = async (sock, message, command, args) => {
