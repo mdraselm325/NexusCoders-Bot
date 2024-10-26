@@ -1,47 +1,21 @@
 module.exports = {
     name: 'sticker',
-    description: 'Convert image/video to sticker',
-    usage: '!sticker [crop]',
+    description: 'Convert image to sticker',
+    usage: '!sticker',
     category: 'general',
-    aliases: ['s'],
-    cooldown: 10,
     async execute(sock, message, args) {
-        const quoted = message.message.extendedTextMessage?.contextInfo?.quotedMessage;
-        const content = quoted || message.message;
+        const quoted = message.message.imageMessage || message.message.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
         
-        if (!content.imageMessage && !content.videoMessage) {
-            return await sock.sendMessage(message.key.remoteJid, {
-                text: '❌ Please reply to an image or video!'
-            });
+        if (!quoted) {
+            return await sock.sendMessage(message.key.remoteJid, { text: 'Send or reply to an image with !sticker' });
         }
-
-        await sock.sendMessage(message.key.remoteJid, {
-            text: '⏳ Creating sticker...'
-        });
-
-        const options = {
-            pack: 'NexusCoders',
-            author: 'Bot',
-            type: 'full',
-            categories: ['🤖'],
-            quality: 70,
+        
+        const media = await sock.downloadMediaMessage(quoted);
+        const sticker = {
+            sticker: media,
+            mimetype: 'image/webp'
         };
-
-        if (args.includes('crop')) {
-            options.type = 'crop';
-        }
-
-        try {
-            const buffer = await downloadMediaMessage(message, 'buffer');
-            const sticker = await createSticker(buffer, options);
-            
-            await sock.sendMessage(message.key.remoteJid, {
-                sticker: sticker
-            });
-        } catch (error) {
-            await sock.sendMessage(message.key.remoteJid, {
-                text: '❌ Failed to create sticker!'
-            });
-        }
+        
+        await sock.sendMessage(message.key.remoteJid, sticker);
     }
 };
