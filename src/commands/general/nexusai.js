@@ -24,7 +24,7 @@ module.exports = {
         try {
             const prompt = args.join(' ');
             const encodedPrompt = encodeURIComponent(prompt);
-            const response = await axios.get(`https://apitoxxictechinc.vercel.app/api/chat?text=${encodedPrompt}&apikey=nexusteam`);
+            const response = await axios.get(`https://mateoapis.onrender.com/api/ai?model=gpt-4-turbo-2024-04-09&system=You are a helpful assistan created by the nexus team&question=Hel`);
 
             if (response.data && response.data.answer) {
                 const aiResponse = `🤖 *Nexus AI Response:*\n\n${response.data.answer}`;
