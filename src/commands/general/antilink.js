@@ -1,88 +1,53 @@
-const axios = require('axios');
+const fs = require('fs');
+const path = './Gallery/database/antilink.json';
 
-let antilinkEnabled = false; // Toggle variable for antilink
+// Load or initialize the antilink list
+let ntilinkall = JSON.parse(fs.readFileSync(path, 'utf-8'));
 
 module.exports = {
     name: 'antilink',
-    description: 'Toggle antilink feature or kick users who send links in the group',
+    description: 'Toggle antilink feature to kick users who send links in the group',
     usage: '!antilink <on/off>',
     category: 'Moderation',
     cooldown: 5,
     async execute(sock, message, args) {
-        // Check if the message is from a group
-        if (!message.key.remoteJid.endsWith('@g.us')) {
-            await sock.sendMessage(message.key.remoteJid, { 
-                text: '❌ This command can only be used in group chats.',
-                quoted: message 
-            });
-            return;
-        }
+        const from = message.key.remoteJid;
 
-        // Toggle antilink based on args
+        // Check if the command is used in a group
+        if (!message.key.remoteJid.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ This command can only be used in groups.' });
+
+        // Check if user is admin or creator
+        if (!isAdmins && !isCreator) return sock.sendMessage(from, { text: '❌ Only group admins can use this command.' });
+
+        // Check if bot is admin
+        if (!isBotAdmins) return sock.sendMessage(from, { text: '❌ I need to be an admin to kick users.' });
+
+        // Turn on antilink
         if (args[0] === 'on') {
-            antilinkEnabled = true;
-            await sock.sendMessage(message.key.remoteJid, { 
-                text: '✅ Antilink has been activated.',
-                quoted: message 
-            });
-            return;
+            if (ntilinkall.includes(from)) return sock.sendMessage(from, { text: '*Already activated*' });
+
+            ntilinkall.push(from);
+            fs.writeFileSync(path, JSON.stringify(ntilinkall));
+
+            sock.sendMessage(from, { text: '*Anti_Link successfully set to kick link senders!*' });
+
+            const group = await sock.groupMetadata(from);
+            const members = group.participants.map(member => member.id.replace('c.us', 's.whatsapp.net'));
+        
+        // Turn off antilink
         } else if (args[0] === 'off') {
-            antilinkEnabled = false;
-            await sock.sendMessage(message.key.remoteJid, { 
-                text: '🚫 Antilink has been deactivated.',
-                quoted: message 
+            if (!ntilinkall.includes(from)) return sock.sendMessage(from, { text: '*Already deactivated*' });
+
+            ntilinkall = ntilinkall.filter(groupId => groupId !== from);
+            fs.writeFileSync(path, JSON.stringify(ntilinkall));
+
+            sock.sendMessage(from, { text: '*Antilink successfully deactivated.*' });
+
+        // Invalid argument
+        } else {
+            await sock.sendMessage(from, { 
+                text: `Please type the option\n\nExample: ${prefix + command} on\nExample: ${prefix + command} off\n\non to enable\noff to disable`
             });
-            return;
-        }
-
-        // Link detection and actions if antilink is enabled
-        if (antilinkEnabled) {
-            const chatMessage = message.message?.conversation || message.message?.extendedTextMessage?.text;
-            const linkRegex = /https?:\/\/[^\s]+/g;
-
-            if (linkRegex.test(chatMessage)) {
-                const sender = message.key.participant;
-                const isBotAdmin = /* your function to check if bot is admin */ true; // Replace with actual check
-                const isAdmins = /* your function to check if user is admin */ false; // Replace with actual check
-                const isCreator = /* your function to check if user is creator */ false; // Replace with actual check
-
-                if (!isBotAdmin) return; // Bot needs admin rights to manage participants
-                
-                // Custom messages for admins or special users
-                const warningMsg = '```☠️ Link Detected ☠️```\n\nYou are a group admin, so I won’t kick you, but avoid sharing links next time.';
-                
-                if (isAdmins || message.key.fromMe || isCreator) {
-                    await sock.sendMessage(message.key.remoteJid, { text: warningMsg, quoted: message });
-                    return;
-                }
-
-                // Delete the link message
-                await sock.sendMessage(message.key.remoteJid, {
-                    delete: {
-                        remoteJid: message.key.remoteJid,
-                        fromMe: false,
-                        id: message.key.id,
-                        participant: message.key.participant
-                    }
-                });
-
-                // Kick the user and notify the group
-                try {
-                    await sock.groupParticipantsUpdate(message.key.remoteJid, [sender], 'remove');
-                    await sock.sendMessage(message.key.remoteJid, {
-                        text: `🚫 Link Detected 🚫\n\n@${sender.split('@')[0]} *has been kicked for sending a link in this group.*`,
-                        contextInfo: { mentionedJid: [sender] },
-                        quoted: message
-                    });
-                } catch (error) {
-                    console.error('Error kicking user:', error);
-                    await sock.sendMessage(message.key.remoteJid, {
-                        text: '❌ Failed to kick the user. Please check my permissions.',
-                        quoted: message
-                    });
-                }
-            }
         }
     }
 };
-                                           
