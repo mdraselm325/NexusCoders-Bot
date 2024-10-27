@@ -1,1 +1,88 @@
-function _0x3296(){const _0x1e40c2=['472745TMhKPp','enabled','length','2185692jvTcoC','5LjszeI','1586115ZUAdOU','text','!antilink\x20<enable|disable>','exports','sendMessage','✅\x20Antilink\x20has\x20been\x20','3636848gSmwQm','linkban','disabled','396855qYoJCl','messages','antilink','Group','remoteJid','3869610yXTJvV','Toggle\x20antilink\x20feature\x20for\x20the\x20group\x20(kicks\x20link\x20senders)','\x20for\x20this\x20group.','participant','❌\x20Please\x20specify\x20enable\x20or\x20disable.','key','23NADSfu','fromMe','message','messages.upsert','extendedTextMessage','enable','jid','49094GIxtPE'];_0x3296=function(){return _0x1e40c2;};return _0x3296();}const _0x10c22e=_0x3494;function _0x3494(_0x525898,_0xfbf38f){const _0x3296c2=_0x3296();return _0x3494=function(_0x349402,_0x219f0e){_0x349402=_0x349402-0x91;let _0x5c866b=_0x3296c2[_0x349402];return _0x5c866b;},_0x3494(_0x525898,_0xfbf38f);}(function(_0x315fd8,_0x290ac5){const _0x1224bf=_0x3494,_0x34249c=_0x315fd8();while(!![]){try{const _0x45884f=-parseInt(_0x1224bf(0x9d))/0x1*(parseInt(_0x1224bf(0xa4))/0x2)+parseInt(_0x1224bf(0x92))/0x3+parseInt(_0x1224bf(0xa8))/0x4*(-parseInt(_0x1224bf(0xa9))/0x5)+parseInt(_0x1224bf(0x97))/0x6+parseInt(_0x1224bf(0xa5))/0x7+parseInt(_0x1224bf(0xb0))/0x8+parseInt(_0x1224bf(0xaa))/0x9;if(_0x45884f===_0x290ac5)break;else _0x34249c['push'](_0x34249c['shift']());}catch(_0x24d661){_0x34249c['push'](_0x34249c['shift']());}}}(_0x3296,0x59030),module[_0x10c22e(0xad)]={'name':_0x10c22e(0x94),'description':_0x10c22e(0x98),'usage':_0x10c22e(0xac),'category':_0x10c22e(0x95),'cooldown':0x5,'aliases':[_0x10c22e(0xb1)],async 'execute'(_0x5297fa,_0x1d4b1f,_0xf50526){const _0x302baf=_0x10c22e,_0x30cee1=_0x1d4b1f[_0x302baf(0x9c)][_0x302baf(0x96)];if(!_0xf50526[_0x302baf(0xa7)]||_0xf50526[0x0]!==_0x302baf(0xa2)&&_0xf50526[0x0]!=='disable'){await _0x5297fa[_0x302baf(0xae)](_0x30cee1,{'text':_0x302baf(0x9b),'quoted':_0x1d4b1f});return;}const _0x1306fb=_0xf50526[0x0]===_0x302baf(0xa2)?_0x302baf(0xa6):_0x302baf(0x91);await _0x5297fa['sendMessage'](_0x30cee1,{'text':_0x302baf(0xaf)+_0x1306fb+_0x302baf(0x99),'quoted':_0x1d4b1f});}},sock['ev']['on'](_0x10c22e(0xa0),async _0x14cb7c=>{const _0x5530b1=_0x10c22e,_0x430804=_0x14cb7c[_0x5530b1(0x93)][0x0][_0x5530b1(0x9c)][_0x5530b1(0x96)],_0x1ac61c=!![];if(_0x1ac61c){const _0x27d331=_0x14cb7c['messages'][0x0][_0x5530b1(0x9f)]['conversation']||_0x14cb7c[_0x5530b1(0x93)][0x0][_0x5530b1(0x9f)][_0x5530b1(0xa1)][_0x5530b1(0xab)],_0x24c9ab=/(https?:\/\/[^\s]+)/g;if(_0x24c9ab['test'](_0x27d331)){const _0x3d06aa=_0x14cb7c['messages'][0x0]['key'][_0x5530b1(0x9e)]?sock['user'][_0x5530b1(0xa3)]:_0x14cb7c['messages'][0x0]['key'][_0x5530b1(0x9a)];await sock['groupParticipantsUpdate'](_0x430804,[_0x3d06aa],'remove');}}}));
+const axios = require('axios');
+
+let antilinkEnabled = false; // Toggle variable for antilink
+
+module.exports = {
+    name: 'antilink',
+    description: 'Toggle antilink feature or kick users who send links in the group',
+    usage: '!antilink <on/off>',
+    category: 'Moderation',
+    cooldown: 5,
+    async execute(sock, message, args) {
+        // Check if the message is from a group
+        if (!message.key.remoteJid.endsWith('@g.us')) {
+            await sock.sendMessage(message.key.remoteJid, { 
+                text: '❌ This command can only be used in group chats.',
+                quoted: message 
+            });
+            return;
+        }
+
+        // Toggle antilink based on args
+        if (args[0] === 'on') {
+            antilinkEnabled = true;
+            await sock.sendMessage(message.key.remoteJid, { 
+                text: '✅ Antilink has been activated.',
+                quoted: message 
+            });
+            return;
+        } else if (args[0] === 'off') {
+            antilinkEnabled = false;
+            await sock.sendMessage(message.key.remoteJid, { 
+                text: '🚫 Antilink has been deactivated.',
+                quoted: message 
+            });
+            return;
+        }
+
+        // Link detection and actions if antilink is enabled
+        if (antilinkEnabled) {
+            const chatMessage = message.message?.conversation || message.message?.extendedTextMessage?.text;
+            const linkRegex = /https?:\/\/[^\s]+/g;
+
+            if (linkRegex.test(chatMessage)) {
+                const sender = message.key.participant;
+                const isBotAdmin = /* your function to check if bot is admin */ true; // Replace with actual check
+                const isAdmins = /* your function to check if user is admin */ false; // Replace with actual check
+                const isCreator = /* your function to check if user is creator */ false; // Replace with actual check
+
+                if (!isBotAdmin) return; // Bot needs admin rights to manage participants
+                
+                // Custom messages for admins or special users
+                const warningMsg = '```☠️ Link Detected ☠️```\n\nYou are a group admin, so I won’t kick you, but avoid sharing links next time.';
+                
+                if (isAdmins || message.key.fromMe || isCreator) {
+                    await sock.sendMessage(message.key.remoteJid, { text: warningMsg, quoted: message });
+                    return;
+                }
+
+                // Delete the link message
+                await sock.sendMessage(message.key.remoteJid, {
+                    delete: {
+                        remoteJid: message.key.remoteJid,
+                        fromMe: false,
+                        id: message.key.id,
+                        participant: message.key.participant
+                    }
+                });
+
+                // Kick the user and notify the group
+                try {
+                    await sock.groupParticipantsUpdate(message.key.remoteJid, [sender], 'remove');
+                    await sock.sendMessage(message.key.remoteJid, {
+                        text: `🚫 Link Detected 🚫\n\n@${sender.split('@')[0]} *has been kicked for sending a link in this group.*`,
+                        contextInfo: { mentionedJid: [sender] },
+                        quoted: message
+                    });
+                } catch (error) {
+                    console.error('Error kicking user:', error);
+                    await sock.sendMessage(message.key.remoteJid, {
+                        text: '❌ Failed to kick the user. Please check my permissions.',
+                        quoted: message
+                    });
+                }
+            }
+        }
+    }
+};
+                                           
