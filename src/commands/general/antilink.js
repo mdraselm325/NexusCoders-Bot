@@ -1,53 +1,50 @@
-const fs = require('fs');
-const path = './Gallery/database/antilink.json';
-
-// Load or initialize the antilink list
-let ntilinkall = JSON.parse(fs.readFileSync(path, 'utf-8'));
-
+const axios = require('axios');
 module.exports = {
     name: 'antilink',
-    description: 'Toggle antilink feature to kick users who send links in the group',
+    description: 'Toggle antilink protection to kick users who send links',
     usage: '!antilink <on/off>',
     category: 'Moderation',
     cooldown: 5,
-    async execute(sock, message, args) {
-        const from = message.key.remoteJid;
+    aliases: ['alink', 'linkblock'],
+    async execute(sock, message, args, isAntilinkOn) {
+        const commandInput = args[0]?.toLowerCase();
 
-        // Check if the command is used in a group
-        if (!message.key.remoteJid.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ This command can only be used in groups.' });
-
-        // Check if user is admin or creator
-        if (!isAdmins && !isCreator) return sock.sendMessage(from, { text: '❌ Only group admins can use this command.' });
-
-        // Check if bot is admin
-        if (!isBotAdmins) return sock.sendMessage(from, { text: '❌ I need to be an admin to kick users.' });
-
-        // Turn on antilink
-        if (args[0] === 'on') {
-            if (ntilinkall.includes(from)) return sock.sendMessage(from, { text: '*Already activated*' });
-
-            ntilinkall.push(from);
-            fs.writeFileSync(path, JSON.stringify(ntilinkall));
-
-            sock.sendMessage(from, { text: '*Anti_Link successfully set to kick link senders!*' });
-
-            const group = await sock.groupMetadata(from);
-            const members = group.participants.map(member => member.id.replace('c.us', 's.whatsapp.net'));
-        
-        // Turn off antilink
-        } else if (args[0] === 'off') {
-            if (!ntilinkall.includes(from)) return sock.sendMessage(from, { text: '*Already deactivated*' });
-
-            ntilinkall = ntilinkall.filter(groupId => groupId !== from);
-            fs.writeFileSync(path, JSON.stringify(ntilinkall));
-
-            sock.sendMessage(from, { text: '*Antilink successfully deactivated.*' });
-
-        // Invalid argument
-        } else {
-            await sock.sendMessage(from, { 
-                text: `Please type the option\n\nExample: ${prefix + command} on\nExample: ${prefix + command} off\n\non to enable\noff to disable`
+        if (commandInput === 'on') {
+            isAntilinkOn = true;
+            await sock.sendMessage(message.key.remoteJid, { 
+                text: '🔒 Antilink protection is now *ON*.',
+                quoted: message 
             });
+        } else if (commandInput === 'off') {
+            isAntilinkOn = false;
+            await sock.sendMessage(message.key.remoteJid, { 
+                text: '🔓 Antilink protection is now *OFF*.',
+                quoted: message 
+            });
+        } else {
+            await sock.sendMessage(message.key.remoteJid, { 
+                text: '❌ Please specify `on` or `off` to toggle antilink protection.',
+                quoted: message 
+            });
+        }
+    },
+    async checkForLinks(sock, message, isAntilinkOn) {
+        if (!isAntilinkOn) return;
+
+        const linkPattern = /https?:\/\/[^\s]+/;
+        if (linkPattern.test(message.body)) {
+            const groupId = message.key.remoteJid;
+            const senderId = message.key.participant;
+
+            try {
+                await sock.groupParticipantsUpdate(groupId, [senderId], 'remove');
+                await sock.sendMessage(groupId, {
+                    text: `🚫 User removed for sending a link:\n@${senderId.split('@')[0]}`,
+                    mentions: [senderId]
+                });
+            } catch (error) {
+                console.error('Failed to kick user:', error);
+            }
         }
     }
 };
