@@ -1,0 +1,20 @@
+module.exports = {
+    name: 'Prefix',
+    description: 'Checks prefix on bot system 😃',
+    usage: '!prefix <required> [optional]',
+    category: 'general',
+    aliases: ['pre', 'p'],
+    cooldown: 5,
+    adminOnly: false,
+    ownerOnly: false,
+    async execute(sock, message, args) {
+        const prefix = '!' // Default prefix
+        const groupSettings = await sock.groupMetadata(message.key.remoteJid);
+        const groupPrefix = groupSettings?.settings?.prefix || prefix;
+
+        const response = `🥏system prefix: ${prefix}, 🛸current Prefix: ${groupPrefix}`;
+        await sock.sendMessage(message.key.remoteJid, {
+            text: response
+        });
+    }
+};
