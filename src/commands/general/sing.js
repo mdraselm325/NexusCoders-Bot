@@ -6,7 +6,7 @@ const fs = require('fs');
 module.exports = {
   name: 'sing',
   description: 'Play or download music from YouTube',
-  usage: '!play <song name>',
+  usage: '!sing <song name>',
   category: 'music',
   aliases: ['s'],
   cooldown: 5,
@@ -22,7 +22,7 @@ module.exports = {
     
     const buttons = searchResult.items.map((item, index) => {
       return {
-        buttonId: `sing_${index}`,
+        buttonId: `play_${index}`,
         buttonText: { displayText: item.title },
         type: 1,
       };
@@ -30,7 +30,7 @@ module.exports = {
     
     const buttonMessage = {
       text: 'Select a song',
-      footer: 'Powered by Nexus',
+      footer: 'Powered by Sing',
       buttons: buttons,
     };
     
@@ -57,7 +57,7 @@ module.exports = {
         
         const downloadButtonMessage = {
           text: 'Select download option',
-          footer: 'Powered by Nexus',
+          footer: 'Powered by Sing',
           buttons: downloadButtons,
         };
         
@@ -76,6 +76,17 @@ module.exports = {
               const filename = stdout.split(' ').pop();
               const fileSize = fs.statSync(filename).size;
               
-              if (fileSize < 10000000) { // it's like 10mbs oky bro
-                await sock.sendMessage(downloadButtonResponse.chatId,
-//Frank kaumba coder Nexus 
+              if (fileSize < 10000000) { // that means 10mbs ok bro 😃👍
+ await sock.sendMessage(downloadButtonResponse.chatId, { video: fs.readFileSync(filename) }, { quoted: downloadButtonResponse });
+                fs.unlinkSync(filename);
+              } else {
+                await sock.sendMessage(downloadButtonResponse.chatId, { text: 'File size exceeds 100MB limit' });
+              }
+            });
+          }
+        });
+      }
+    });
+  },
+};
+//frank kaumba coder nexus
