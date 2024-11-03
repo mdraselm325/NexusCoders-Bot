@@ -18,6 +18,7 @@ const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const config = require('./src/config');
 const { initializeCommands } = require('./src/handlers/commandHandler');
+const eventHandler = require('./src/handlers/eventHandler');
 
 const msgRetryCounterCache = new NodeCache();
 const app = express();
@@ -42,7 +43,8 @@ async function ensureDirectories() {
         fs.ensureDir(sessionDir),
         fs.ensureDir('temp'),
         fs.ensureDir('assets'),
-        fs.ensureDir('logs')
+        fs.ensureDir('logs'),
+        fs.ensureDir(path.join(__dirname, 'src', 'events'))
     ]);
 }
 
@@ -124,6 +126,7 @@ async function connectToWhatsApp() {
                     if (!msg.key.fromMe) {
                         try {
                             await messageHandler.handleMessage(sock, msg);
+                            await eventHandler.handleEvent('message', sock, msg);
                         } catch (error) {
                             logger.error('Message handling failed:', error);
                         }
@@ -132,13 +135,15 @@ async function connectToWhatsApp() {
             }
         });
 
-        sock.ev.on('group-participants.update', (update) => {
-            messageHandler.handleGroupParticipantsUpdate(sock, update);
+        sock.ev.on('group-participants.update', async (update) => {
+            await messageHandler.handleGroupParticipantsUpdate(sock, update);
+            await eventHandler.handleEvent('groupMemberJoin', sock, update.id, update.participants[0]);
         });
 
-        sock.ev.on('groups.update', (updates) => {
+        sock.ev.on('groups.update', async (updates) => {
             for (const update of updates) {
-                messageHandler.handleGroupUpdate(sock, update);
+                await messageHandler.handleGroupUpdate(sock, update);
+                await eventHandler.handleEvent('groupUpdate', sock, update);
             }
         });
 
@@ -176,6 +181,7 @@ async function initialize() {
         await connectToDatabase();
         await processSessionData();
         await initializeCommands();
+        await eventHandler.loadEvents();
         await connectToWhatsApp();
         await startServer();
 
