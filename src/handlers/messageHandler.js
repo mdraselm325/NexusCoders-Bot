@@ -1,33 +1,27 @@
 const logger = require('../utils/logger');
 const config = require('../config');
-const { executeCommand } = require('./commandHandler');
-
+const { executeCommand, onReply, onChat } = require('./commandHandler');
+const eventHandler = require('./eventHandler');
 const messageCount = new Map();
 const typingStates = new Map();
 
-function handleSpam(jid) {
+function handleSpam(jid, sock) {
     if (!config.features?.antiSpam?.enabled) return false;
-    
     const now = Date.now();
     const userData = messageCount.get(jid) || { count: 0, lastReset: now };
-    
     if (now - userData.lastReset > (config.features?.antiSpam?.interval || 30000)) {
         userData.count = 0;
         userData.lastReset = now;
     }
-    
     userData.count++;
     messageCount.set(jid, userData);
-    
     return userData.count > (config.features?.antiSpam?.maxMessages || 10);
 }
 
 async function simulateTyping(sock, jid) {
     if (!config.features?.presence?.autoTyping) return;
-    
     if (typingStates.get(jid)) return;
     typingStates.set(jid, true);
-    
     try {
         await sock.presenceSubscribe(jid);
         await sock.sendPresenceUpdate('composing', jid);
@@ -43,22 +37,17 @@ async function simulateTyping(sock, jid) {
 async function handleMessage(sock, message) {
     try {
         if (!message?.message) return;
-
         const jid = message.key.remoteJid;
         if (!jid) return;
-
         const sender = message.key.participant || message.key.remoteJid;
         
-        if (handleSpam(sender)) {
-            await sock.sendMessage(jid, {
-                text: '⚠️ Please slow down! You are sending messages too quickly.'
-            });
+        if (handleSpam(sender, sock)) {
+            await sock.sendMessage(jid, { text: '⚠️ Please slow down! You are sending messages too quickly.' });
             return;
         }
 
         let messageText = '';
         const msg = message.message;
-
         if (msg.conversation) {
             messageText = msg.conversation;
         } else if (msg.extendedTextMessage) {
@@ -72,8 +61,8 @@ async function handleMessage(sock, message) {
         if (!messageText) return;
 
         if (messageText === config.bot.prefix) {
-            await sock.sendMessage(jid, {
-                text: `👋 Hi! My prefix is *${config.bot.prefix}*\nUse *${config.bot.prefix}menu* to see available commands!`
+            await sock.sendMessage(jid, { 
+                text: `👋 Hi! I'm NexusCoders Bot V2\nPrefix: *${config.bot.prefix}*\nUse *${config.bot.prefix}menu* to see available commands!` 
             });
             return;
         }
@@ -100,6 +89,9 @@ async function handleMessage(sock, message) {
                 await sock.sendPresenceUpdate('paused', jid);
             } catch (error) {}
         }
+
+        await onReply(sock, message, jid, sender);
+        await onChat(sock, message, jid, sender);
     } catch (error) {
         logger.error('Error in message handler:', error);
     }
@@ -110,34 +102,23 @@ async function handleGroupParticipantsUpdate(sock, update) {
         const { id, participants, action } = update;
         if (!id || !participants || !action) return;
 
-        const groupMetadata = await sock.groupMetadata(id);
-        if (!groupMetadata) return;
-
-        for (const participant of participants) {
-            const user = participant.split('@')[0];
-            let message = '';
-
-            switch (action) {
-                case 'add':
-                    message = `Welcome @${user} to ${groupMetadata.subject}! 🎉`;
-                    break;
-                case 'remove':
-                    message = `Goodbye @${user}! 👋`;
-                    break;
-                case 'promote':
-                    message = `@${user} has been promoted to admin! 🎊`;
-                    break;
-                case 'demote':
-                    message = `@${user} has been demoted! 📉`;
-                    break;
-            }
-
-            if (message) {
-                await sock.sendMessage(id, {
-                    text: message,
-                    mentions: [participant]
-                });
-            }
+        switch (action) {
+            case 'add':
+                for (const participant of participants) {
+                    await eventHandler.handleEvent('groupMemberJoin', sock, id, participant);
+                }
+                break;
+            case 'remove':
+                for (const participant of participants) {
+                    await eventHandler.handleEvent('groupMemberLeave', sock, id, participant);
+                }
+                break;
+            case 'promote':
+                await eventHandler.handleEvent('groupMemberPromote', sock, id, participants);
+                break;
+            case 'demote':
+                await eventHandler.handleEvent('groupMemberDemote', sock, id, participants);
+                break;
         }
     } catch (error) {
         logger.error('Error in group participants handler:', error);
@@ -146,19 +127,29 @@ async function handleGroupParticipantsUpdate(sock, update) {
 
 async function handleGroupUpdate(sock, update) {
     try {
-        const { id, subject, desc } = update;
+        const { id, subject, desc, restrict, announce } = update;
         if (!id) return;
+        
+        const updates = {};
+        let hasUpdates = false;
 
-        if (subject) {
-            await sock.sendMessage(id, {
-                text: `Group name changed to: ${subject}`
-            });
+        if (subject !== undefined) {
+            updates.subject = subject;
+            hasUpdates = true;
+            await eventHandler.handleEvent('groupSubjectUpdate', sock, id, subject);
+        }
+        
+        if (desc !== undefined) {
+            updates.desc = desc;
+            hasUpdates = true;
+            await eventHandler.handleEvent('groupDescriptionUpdate', sock, id, desc);
         }
 
-        if (desc) {
-            await sock.sendMessage(id, {
-                text: `Group description updated!`
-            });
+        if (restrict !== undefined || announce !== undefined) {
+            updates.restrict = restrict;
+            updates.announce = announce;
+            hasUpdates = true;
+            await eventHandler.handleEvent('groupSettings', sock, id, { restrict, announce });
         }
     } catch (error) {
         logger.error('Error in group update handler:', error);
