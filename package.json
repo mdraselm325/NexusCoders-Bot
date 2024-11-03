@@ -76,7 +76,13 @@
     "systeminformation": "^5.21.17",
     "translate-google-api": "^1.0.4",
     "wikijs": "^6.4.1",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "nayan-server": "^1.0.1",
+    "pinterest-node-api": "^0.0.3",
+    "node-pinterest": "^0.0.2",
+    "pinterest-api": "^1.1.4",
+    "pinterest": "^0.1.1",
+    "pinterest-scraper": "^1.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^2.1.4",
@@ -119,4 +125,4 @@
       "sharp": "0.32.6"
     }
   }
-  }
+}
