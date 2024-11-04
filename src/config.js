@@ -1,6 +1,6 @@
 const config = {
     botName: "NexusCoders Bot",
-    ownerNumber: "2347075663318@s.whatsapp.net",
+    ownerNumber: "",//leave nothing in here
     database: {
         uri: "mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/nexusbot?retryWrites=true&w=majority",
         options: {
@@ -11,30 +11,12 @@ const config = {
             family: 4
         }
     },
-    bot: {
-        name: "NexusCoders Bot",
-        version: "2.0.0",
-        prefix: "!",
-        sessionName: "nexus-session",
-        ownerNumber: ["2347075663318@s.whatsapp.net"],
-        ownerName: "NexusCoders",
-        language: "en",
-        timezone: "Asia/Kolkata",
-        homePage: "https://nexuscoders.com",
-        autoRead: true,
-        selfBot: false,
-        maxFileSize: 100,
-        supportGroups: ["SUPPORT_GROUP_ID@g.us"],
-        logLevel: "silent"
-    },
-    limits: {
-        maxWarn: 3,
-        rateLimit: 2,
-        cooldown: 3000,
-        maxCommandsPerMinute: 10,
-        maxMessagesPerMinute: 15
-    },
     features: {
+        autoRead: true,//set to true or false
+        presence: {
+            autoTyping: true,
+            autoRecord: true
+        },
         antiLink: {
             enabled: true,
             whitelist: [],
@@ -58,7 +40,7 @@ const config = {
         },
         presence: {
             autoTyping: true,
-            autoRecord: false,
+            autoRecord: true,
             autoOnline: true
         },
         leveling: {
@@ -72,6 +54,31 @@ const config = {
             groupBonus: 1.5,
             maxLevel: 100
         }
+    },
+    bot: {
+        name: "NexusCoders Bot",
+        version: "2.0.0",
+        prefix: ".",
+        sessionName: "nexus-session",
+        ownerNumber: ["2347075663318@s.whatsapp.net", "265993702468@s.whatsapp.net",], //add owmer numbers in here
+        ownerName: "NexusCoders",
+        language: "en",
+        timezone: "Asia/Kolkata",
+        homePage: "https://nexuscoders.com",
+        autoRead: true,
+        selfBot: false,
+        publicMode: true,
+        privateMode: false,
+        maxFileSize: 100,
+        supportGroups: ["SUPPORT_GROUP_ID@g.us"],
+        logLevel: "silent"
+    },
+    limits: {
+        maxWarn: 3,
+        rateLimit: 2,
+        cooldown: 5,
+        maxCommandsPerMinute: 5,
+        maxMessagesPerMinute: 5
     },
     appearance: {
         colors: {
