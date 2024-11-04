@@ -62,6 +62,52 @@ async function processSessionData() {
     }
 }
 
+async function sendStartupMessage(sock, jid) {
+    const time = new Date().toLocaleString('en-US', {
+        timeZone: config.bot.timezone,
+        hour12: true,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+    const date = new Date().toLocaleDateString('en-US', {
+        timeZone: config.bot.timezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const startupText = `╭─「 *${config.botName}* 」
+├ Status: Online ✅
+├ Version: ${config.bot.version}
+├ Time: ${time}
+├ Date: ${date}
+├ Mode: ${config.bot.publicMode ? 'Public' : 'Private'}
+├ Owner: ${config.bot.ownerName}
+├ Prefix: ${config.bot.prefix}
+╰────────────────`;
+
+    try {
+        await sock.sendMessage(jid, {
+            text: startupText,
+            contextInfo: {
+                externalAdReply: {
+                    title: config.botName,
+                    body: "Bot is now online!",
+                    thumbnailUrl: "https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/Icon.png",
+                    sourceUrl: config.bot.homePage,
+                    mediaType: 1,
+                    renderLargerThumbnail: true
+                }
+            }
+        });
+    } catch (error) {
+        logger.error('Failed to send startup message:', error);
+    }
+}
+
 async function connectToWhatsApp() {
     if (isConnecting) return null;
     isConnecting = true;
@@ -108,11 +154,8 @@ async function connectToWhatsApp() {
 
                 if (initialConnection) {
                     initialConnection = false;
-                    try {
-                        const startupText = `${config.botName} is now online!\nTime: ${new Date().toLocaleString()}\nMode: Development\nVersion: 1.0.0`;
-                        await sock.sendMessage(config.ownerNumber, { text: startupText });
-                    } catch (error) {
-                        logger.error('Startup message failed:', error);
+                    for (const ownerNumber of config.bot.ownerNumber) {
+                        await sendStartupMessage(sock, ownerNumber);
                     }
                 }
             }
@@ -123,13 +166,11 @@ async function connectToWhatsApp() {
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
             if (type === 'notify') {
                 for (const msg of messages) {
-                    if (!msg.key.fromMe) {
-                        try {
-                            await messageHandler.handleMessage(sock, msg);
-                            await eventHandler.handleEvent('message', sock, msg);
-                        } catch (error) {
-                            logger.error('Message handling failed:', error);
-                        }
+                    try {
+                        await messageHandler.handleMessage(sock, msg);
+                        await eventHandler.handleEvent('message', sock, msg);
+                    } catch (error) {
+                        logger.error('Message handling failed:', error);
                     }
                 }
             }
