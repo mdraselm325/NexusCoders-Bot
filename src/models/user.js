@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
         default: false
     },
     isPremium: {
-        type: Boolean,
+        type: Boolean, 
         default: false
     },
     lastDaily: Date,
@@ -71,12 +71,21 @@ const userSchema = new mongoose.Schema({
             default: 0
         }
     },
+    replyCommandName: String,
+    replyData: mongoose.Schema.Types.Mixed,
+    chatCommandName: String,
+    chatData: mongoose.Schema.Types.Mixed,
     lastCommandTime: Date,
     createdAt: {
         type: Date,
         default: Date.now
     },
-    updatedAt: Date
+    updatedAt: Date,
+    activeCommand: {
+        name: String,
+        state: mongoose.Schema.Types.Mixed,
+        timestamp: Date
+    }
 });
 
 userSchema.pre('save', function(next) {
@@ -90,6 +99,7 @@ userSchema.methods.addExperience = async function(amount) {
     const didLevelUp = nextLevel > this.level;
     if (didLevelUp) {
         this.level = nextLevel;
+        this.balance += this.level * 100;
     }
     await this.save();
     return didLevelUp;
@@ -124,6 +134,20 @@ userSchema.methods.unban = async function() {
 
 userSchema.methods.setPremium = async function(status) {
     this.isPremium = status;
+    await this.save();
+};
+
+userSchema.methods.setActiveCommand = async function(commandName, state = {}) {
+    this.activeCommand = {
+        name: commandName,
+        state: state,
+        timestamp: new Date()
+    };
+    await this.save();
+};
+
+userSchema.methods.clearActiveCommand = async function() {
+    this.activeCommand = null;
     await this.save();
 };
 
