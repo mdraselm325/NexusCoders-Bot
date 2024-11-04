@@ -64,7 +64,7 @@ const config = {
         ownerName: "NexusCoders",
         language: "en",
         timezone: "Asia/Kolkata",
-        homePage: "https://nexuscoders.com",
+        homePage: "https://github.com/NexusCoders-cyber/NexusCoders-Bot.git",
         autoRead: true,
         selfBot: false,
         publicMode: true,
