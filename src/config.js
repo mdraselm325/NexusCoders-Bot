@@ -1,6 +1,6 @@
 const config = {
     botName: "NexusCoders Bot",
-    ownerNumber: "",//leave nothing in here
+    ownerNumber: "8801703956986",//leave nothing in here
     database: {
         uri: "mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/nexusbot?retryWrites=true&w=majority",
         options: {
